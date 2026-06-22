@@ -1,0 +1,1650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>杨老板记账本</title>
+<style>
+:root {
+  --primary: #4A90D9;
+  --primary-dark: #357ABD;
+  --success: #52c41a;
+  --danger: #ff4d4f;
+  --warning: #faad14;
+  --bg: #f5f7fa;
+  --card-bg: #ffffff;
+  --text: #333333;
+  --text-secondary: #666666;
+  --border: #e8e8e8;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding-bottom: 60px;
+}
+
+.header {
+  background: linear-gradient(135deg, #4A90D9, #357ABD);
+  color: white;
+  padding: 16px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(74,144,217,0.3);
+}
+.header h1 { font-size: 20px; font-weight: 600; }
+.header .subtitle { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+
+.tabs {
+  display: flex;
+  background: white;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 60px;
+  z-index: 99;
+}
+.tab {
+  flex: 1;
+  padding: 12px;
+  text-align: center;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+.tab-content { display: none; padding: 16px; }
+.tab-content.active { display: block; }
+
+.card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.form-group { margin-bottom: 14px; }
+.form-row { display: flex; gap: 12px; }
+.form-row .form-group { flex: 1; }
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+input, select, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  background: #fafafa;
+  transition: all 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: white;
+  box-shadow: 0 0 0 3px rgba(74,144,217,0.1);
+}
+input[type="number"] { text-align: right; }
+
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:active { transform: scale(0.98); }
+.btn-secondary { background: #f0f0f0; color: var(--text); }
+.btn-danger { background: #fff0f0; color: var(--danger); }
+.btn-full { width: 100%; }
+
+.result-card {
+  background: linear-gradient(135deg, #f0f7ff, #e6f3ff);
+  border: 1px solid #b3d9ff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed #cce0ff;
+  font-size: 14px;
+}
+.result-row:last-child { border-bottom: none; }
+.result-label { color: var(--text-secondary); }
+.result-value { font-weight: 600; font-size: 16px; }
+.result-total {
+  background: white;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+  text-align: center;
+}
+.result-total .amount {
+  font-size: 28px;
+  font-weight: 700;
+}
+.result-total .amount.positive { color: var(--success); }
+.result-total .amount.negative { color: var(--danger); }
+.result-total .label { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+.share-section {
+  background: #fff8e6;
+  border: 1px solid #ffe0a3;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+}
+.share-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 14px;
+}
+.share-row .name { color: var(--text-secondary); }
+.share-row .amount { font-weight: 600; }
+
+.record-item {
+  background: white;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow);
+}
+.record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 8px;
+}
+.record-title { font-weight: 600; font-size: 15px; }
+.record-date { font-size: 12px; color: var(--text-secondary); }
+.record-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #e8e8e8;
+  color: var(--text-secondary);
+}
+.tag-income { background: #d4f7d4; color: #389e0d; }
+.tag-expense { background: #ffd4d4; color: #cf1322; }
+.tag-product { background: #d4e5ff; color: #0050b3; }
+.record-amount { font-size: 20px; font-weight: 700; text-align: right; }
+.record-amount.income { color: var(--success); }
+.record-amount.expense { color: var(--danger); }
+.record-detail {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  line-height: 1.6;
+}
+.record-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.record-actions .btn { padding: 6px 12px; font-size: 13px; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.stat-card .stat-label { font-size: 12px; color: var(--text-secondary); }
+.stat-card .stat-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+.stat-card.income .stat-value { color: var(--success); }
+.stat-card.expense .stat-value { color: var(--danger); }
+.stat-card.profit .stat-value { color: var(--primary); }
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(0,0,0,0.8);
+  color: white;
+  padding: 10px 24px;
+  border-radius: 20px;
+  font-size: 14px;
+  z-index: 999;
+  transition: transform 0.3s;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+}
+.empty .icon { font-size: 48px; margin-bottom: 12px; }
+
+.account-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.account-company { background: #e6f3ff; color: #0050b3; }
+.account-personal { background: #f6e6ff; color: #722ed1; }
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.filter-chip {
+  padding: 6px 14px;
+  border-radius: 16px;
+  background: white;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.filter-chip.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.month-summary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  color: white;
+}
+.month-summary .month-label { font-size: 14px; opacity: 0.9; }
+.month-summary .month-amount { font-size: 26px; font-weight: 700; margin-top: 4px; }
+.month-summary .month-detail {
+  display: flex;
+  gap: 20px;
+  margin-top: 10px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.mode-btn {
+  flex: 1;
+  cursor: pointer;
+  text-align: center;
+  padding: 10px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  transition: all 0.2s;
+  font-family: inherit;
+  color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.mode-btn.active {
+  border-color: var(--primary);
+  background: #e6f3ff;
+  font-weight: 600;
+}
+
+.history-chips {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.history-chip {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #f0f5ff;
+  border: 1px solid #d6e4ff;
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.history-chip:active { background: #d6e4ff; }
+
+@media (min-width: 768px) {
+  .container { max-width: 800px; margin: 0 auto; }
+  .stats-grid { grid-template-columns: repeat(4, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="header">
+  <h1>📒 杨老板记账本</h1>
+  <div class="subtitle">智能利润计算 · 收支管理 · 一键复制</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" id="tab-btn-calculator">🧮 利润计算</div>
+  <div class="tab" id="tab-btn-records">📋 记录列表</div>
+  <div class="tab" id="tab-btn-stats">📊 统计</div>
+</div>
+
+<!-- ===== Tab 1: 利润计算器 ===== -->
+<div id="tab-calculator" class="tab-content active">
+
+  <div class="card">
+    <div class="card-title">📦 产品利润计算器</div>
+
+    <div class="form-group">
+      <label>产品名称 / 型号</label>
+      <input type="text" id="p_name" placeholder="如：NM2 蓝色" list="product-list">
+      <datalist id="product-list"></datalist>
+      <div id="product-history" class="history-chips" style="display:none"></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>数量</label>
+        <input type="number" id="p_qty" value="1" min="1" oninput="calcProfit()">
+      </div>
+      <div class="form-group">
+        <label>成本单价 (¥)</label>
+        <input type="number" id="p_cost_unit" placeholder="如：389" step="0.01" oninput="onCostUnitInput()">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>成本合计 (¥) <span style="color:#999;font-size:11px">（自动=数量×单价，也可手动改）</span></label>
+      <input type="number" id="p_cost_total" placeholder="自动计算" step="0.01" oninput="onCostTotalInput()">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>收件地区 <span style="color:#999;font-size:11px">（选地区自动填顺丰运费）</span></label>
+        <select id="p_region">
+          <option value="">手动输入</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:0.5">
+        <label>运费 (¥)</label>
+        <input type="number" id="p_shipping" value="0" step="0.01">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1">
+        <label>平台扣点 <span style="color:#999;font-size:11px">（%，如0.6=0.6%）</span></label>
+        <input type="number" id="p_platform_pct" value="0" step="0.01" min="0" placeholder="如：0.6">
+      </div>
+      <div class="form-group" style="flex:0.5">
+        <label>扣点金额 (¥)</label>
+        <input type="number" id="p_platform_fee" value="0" step="0.01" readonly style="background:#f0f0f0;color:#666">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>收款金额 (¥)</label>
+      <input type="number" id="p_revenue" placeholder="如：4200" step="0.01" oninput="calcProfit()">
+    </div>
+
+    <div class="form-group">
+      <label>其他费用 (¥) <span style="color:#999;font-size:11px">（包装、赠品成本等）</span></label>
+      <input type="number" id="p_other_fee" value="0" step="0.01" oninput="calcProfit()">
+    </div>
+
+    <hr style="border:none;border-top:1px solid #eee;margin:14px 0">
+
+    <div class="form-group">
+      <label>利润模式</label>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="mode-btn active" id="mode-solo">💰 独立利润</button>
+        <button type="button" class="mode-btn" id="mode-share">🤝 分成利润</button>
+      </div>
+    </div>
+
+    <div id="share-section" style="display:none">
+      <div class="form-group">
+        <label>分成设置 <span style="color:#999;font-size:11px">（自动保存，下次打开自动恢复）</span></label>
+        <div id="share-container">
+          <div class="form-row share-item" style="align-items:flex-end;margin-bottom:8px">
+            <div class="form-group" style="flex:2">
+              <label>分成人1</label>
+              <input type="text" id="share1_name" placeholder="如：老板" value="老板" oninput="saveShareSettings()">
+            </div>
+            <div class="form-group" style="flex:1">
+              <label>比例 (%)</label>
+              <input type="number" id="share1_pct" value="60" min="0" max="100" step="1" oninput="saveShareSettings();calcProfit()">
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-full" style="margin-top:4px;font-size:13px" id="btn-add-share">+ 添加分成人</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>备注</label>
+      <textarea id="p_note" rows="2" placeholder="如：买10送2、顺丰包邮等"></textarea>
+    </div>
+
+    <!-- Result -->
+    <div id="result-area" style="display:none">
+      <div class="result-card">
+        <div class="result-row">
+          <span class="result-label">收款金额</span>
+          <span class="result-value" id="r_revenue">¥0</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">产品成本</span>
+          <span class="result-value" id="r_cost">¥0</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">运费</span>
+          <span class="result-value" id="r_shipping">¥0</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">平台扣点</span>
+          <span class="result-value" id="r_platform">¥0</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">其他费用</span>
+          <span class="result-value" id="r_other">¥0</span>
+        </div>
+        <div class="result-row">
+          <span class="result-label">总成本</span>
+          <span class="result-value" id="r_total_cost">¥0</span>
+        </div>
+
+        <div class="result-total">
+          <div class="label">净利润</div>
+          <div class="amount positive" id="r_profit">¥0</div>
+          <div class="label" id="r_profit_rate" style="margin-top:6px">利润率：0%</div>
+        </div>
+
+        <div class="share-section" id="share-result" style="display:none">
+          <div style="font-weight:600;margin-bottom:8px;font-size:14px">💰 利润分成</div>
+          <div id="share-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button type="button" class="btn btn-primary" style="flex:1" id="btn-save-calc">💾 记录这笔</button>
+      <button type="button" class="btn btn-secondary" id="btn-copy-full">📋 复制(含成本)</button>
+      <button type="button" class="btn btn-secondary" id="btn-copy-formula">📋 复制成本等式</button>
+      <button type="button" class="btn btn-secondary" id="btn-clear-calc">↻ 清空</button>
+    </div>
+  </div>
+
+  <!-- Quick Income/Expense -->
+  <div class="card">
+    <div class="card-title">💰 快速记账</div>
+    <div class="form-group">
+      <label>类型</label>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="mode-btn active" id="qtype-income">📈 收入</button>
+        <button type="button" class="mode-btn" id="qtype-expense">📉 支出</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>金额 (¥)</label>
+      <input type="number" id="quick_amount" placeholder="如：500" step="0.01">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>分类</label>
+        <select id="quick_category"></select>
+      </div>
+      <div class="form-group">
+        <label>账户</label>
+        <select id="quick_account">
+          <option value="公司">公司账户</option>
+          <option value="个人">个人账户</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>备注</label>
+      <input type="text" id="quick_note" placeholder="如：XX客户货款">
+    </div>
+    <button type="button" class="btn btn-primary btn-full" id="btn-save-quick">➕ 添加记录</button>
+  </div>
+
+</div>
+
+<!-- ===== Tab 2: 记录列表 ===== -->
+<div id="tab-records" class="tab-content">
+  <div class="filter-bar">
+    <div class="filter-chip active" data-filter="all">全部</div>
+    <div class="filter-chip" data-filter="product">📦 产品</div>
+    <div class="filter-chip" data-filter="income">📈 收入</div>
+    <div class="filter-chip" data-filter="expense">📉 支出</div>
+  </div>
+  <div id="record-list"></div>
+</div>
+
+<!-- ===== Tab 3: 统计 ===== -->
+<div id="tab-stats" class="tab-content">
+  <div class="month-summary">
+    <div class="month-label" id="stat_month">本月汇总</div>
+    <div class="month-amount" id="stat_month_profit">¥0</div>
+    <div class="month-detail">
+      <span>收入：<span id="stat_month_income">¥0</span></span>
+      <span>支出：<span id="stat_month_expense">¥0</span></span>
+      <span>记录：<span id="stat_month_count">0</span>笔</span>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card income">
+      <div class="stat-label">总收入</div>
+      <div class="stat-value" id="stat_income">¥0</div>
+    </div>
+    <div class="stat-card expense">
+      <div class="stat-label">总支出</div>
+      <div class="stat-value" id="stat_expense">¥0</div>
+    </div>
+    <div class="stat-card profit">
+      <div class="stat-label">净利润</div>
+      <div class="stat-value" id="stat_profit">¥0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">总记录</div>
+      <div class="stat-value" id="stat_count">0</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📈 产品销售排行</div>
+    <div id="product-ranking"><div class="empty"><div class="icon">📊</div>暂无数据</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📂 分类统计</div>
+    <div id="category-stats"><div class="empty"><div class="icon">📂</div>暂无数据</div></div>
+  </div>
+
+  <button type="button" class="btn btn-danger btn-full" id="btn-export" style="margin-top:16px">📤 导出全部数据</button>
+  <button type="button" class="btn btn-secondary btn-full" id="btn-import" style="margin-top:8px">📥 导入数据</button>
+  <button type="button" class="btn btn-secondary btn-full" id="btn-import-text" style="margin-top:8px">📋 粘贴导入</button>
+  <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
+  <textarea id="import-text-area" style="display:none;width:100%;height:120px;margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:monospace;resize:vertical" placeholder="在此粘贴JSON数据..."></textarea>
+  <button type="button" class="btn btn-primary btn-full" id="btn-import-text-confirm" style="display:none;margin-top:4px">确认导入</button>
+</div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== State =====
+const STORAGE_KEY = 'boss_bookkeeping_data';
+const HISTORY_KEY = 'boss_product_history';
+let records = [];
+let productHistory = [];
+let currentFilter = 'all';
+let currentProfitMode = 'solo';
+let currentQuickType = 'income';
+let shareCount = 1;
+let costTotalManual = false; // user manually overrode cost total
+let shippingManual = false;
+
+// ===== 顺丰运费数据（广州始发） =====
+var SF_DATA = {"广东同城":{"label":"广东同城","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":10,"continue_price":1},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":12,"continue_price":1},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":29,"continue_price":2}]},"广东省内":{"label":"广东省内","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":11,"continue_price":2},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":15,"continue_price":2},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":49,"continue_price":3}]},"北京":{"label":"北京","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"天津":{"label":"天津","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"上海":{"label":"上海","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"河北":{"label":"河北","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"河南":{"label":"河南","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"江苏":{"label":"江苏","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"浙江":{"label":"浙江","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"安徽":{"label":"安徽","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"湖北":{"label":"湖北","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"广西":{"label":"广西","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":5.5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":24,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":109,"continue_price":6.5}]},"海南":{"label":"海南","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":5.5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":24,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":109,"continue_price":6.5}]},"江西":{"label":"江西","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":23,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":108,"continue_price":6.5}]},"福建":{"label":"福建","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":23,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":108,"continue_price":6.5}]},"湖南":{"label":"湖南","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":5.5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":24,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":109,"continue_price":6.5}]},"山东":{"label":"山东","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5.5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":120.5,"continue_price":7}]},"山西":{"label":"山西","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5.5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":120.5,"continue_price":7}]},"云南":{"label":"云南","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":112,"continue_price":6.5}]},"四川":{"label":"四川","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":112,"continue_price":6.5}]},"重庆":{"label":"重庆","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":112,"continue_price":6.5}]},"贵州":{"label":"贵州","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":5.5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":26,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":111,"continue_price":6.5}]},"陕西":{"label":"陕西","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5.5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":120.5,"continue_price":7}]},"辽宁":{"label":"辽宁","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6.5},{"min_kg":3,"max_kg":15,"first_kg":3,"first_price":28,"continue_price":6},{"min_kg":15,"max_kg":99999,"first_kg":15,"first_price":100,"continue_price":7.5}]},"吉林":{"label":"吉林","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":8},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":8}]},"黑龙江":{"label":"黑龙江","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":8},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":8}]},"内蒙古":{"label":"内蒙古","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":17,"continue_price":7},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":7}]},"宁夏":{"label":"宁夏","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":17,"continue_price":7},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":7}]},"甘肃":{"label":"甘肃","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":17,"continue_price":7},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":7}]},"青海":{"label":"青海","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":17,"continue_price":7},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":7}]},"新疆":{"label":"新疆","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":20,"continue_price":10.5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":41,"continue_price":9.5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":202.5,"continue_price":10.5}]}};
+
+function calcSF(regionKey, weight) {
+  var r = SF_DATA[regionKey];
+  if (!r) return 0;
+  var tiers = r.tiers;
+  for (var i = 0; i < tiers.length; i++) {
+    if (weight <= tiers[i].max_kg) {
+      if (weight <= tiers[i].first_kg) return tiers[i].first_price;
+      var extra = weight - tiers[i].first_kg;
+      return Math.round(tiers[i].first_price + extra * tiers[i].continue_price);
+    }
+  }
+  return 0;
+}
+
+function loadRegionOptions() {
+  var sel = document.getElementById('p_region');
+  if (!sel) return;
+  var keys = Object.keys(SF_DATA);
+  for (var i = 0; i < keys.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = keys[i];
+    opt.textContent = SF_DATA[keys[i]].label;
+    sel.appendChild(opt);
+  }
+}
+
+function onRegionChange() {
+  var region = document.getElementById('p_region').value;
+  if (region && SF_DATA[region]) {
+    var price = SF_DATA[region].tiers[0].first_price;
+    document.getElementById('p_shipping').value = price;
+    shippingManual = false;
+  }
+  calcProfit();
+}
+
+function onShippingManual() {
+  shippingManual = true;
+  calcProfit();
+}
+
+// ===== Init =====
+function init() {
+  try { records = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) { records = []; }
+  try { productHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch(e) { productHistory = []; }
+  loadRegionOptions();
+  loadProductList();
+  renderProductHistory();
+  selectQuickType('income');
+  renderRecords();
+  // Restore profit mode
+  var savedMode = localStorage.getItem('boss_profit_mode') || 'solo';
+  selectProfitMode(savedMode);
+}
+
+// ===== Helpers =====
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); }
+function saveHistory() { localStorage.setItem(HISTORY_KEY, JSON.stringify(productHistory)); }
+
+function formatDate(d) {
+  const dt = new Date(d);
+  return (dt.getMonth()+1) + '月' + dt.getDate() + '日 ' +
+    String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+}
+
+function formatMoney(n) {
+  if (isNaN(n)) n = 0;
+  const sign = n < 0 ? '-' : '';
+  return sign + '¥' + Math.abs(n).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function num(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  const v = parseFloat(el.value);
+  return isNaN(v) ? 0 : v;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2000);
+}
+
+// ===== Tab Switch =====
+function switchTab(name, el) {
+  var tabs = document.querySelectorAll('.tab');
+  var contents = document.querySelectorAll('.tab-content');
+  for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('active');
+  for (var j = 0; j < contents.length; j++) contents[j].classList.remove('active');
+  el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'records') renderRecords();
+  if (name === 'stats') renderStats();
+}
+
+// ===== Cost Total Auto-calc =====
+function onCostUnitInput() {
+  if (!costTotalManual) {
+    var qty = num('p_qty');
+    var unit = num('p_cost_unit');
+    document.getElementById('p_cost_total').value = (qty * unit).toFixed(2);
+  }
+  calcProfit();
+}
+
+function onCostTotalInput() {
+  costTotalManual = true;
+  calcProfit();
+}
+
+// ===== Profit Calculator =====
+function calcProfit() {
+  var qty = num('p_qty');
+  var costUnit = num('p_cost_unit');
+  var costTotal = num('p_cost_total');
+  var shipping = num('p_shipping');
+  var platformPct = num('p_platform_pct');
+  var revenue = num('p_revenue');
+  var otherFee = num('p_other_fee');
+  // Platform fee = revenue * pct/100
+  var platformFee = Math.round(revenue * platformPct / 100 * 100) / 100;
+  document.getElementById('p_platform_fee').value = platformFee.toFixed(2);
+
+  // If cost total is 0 but cost unit has value, auto-calc
+  if (costTotal === 0 && costUnit > 0) {
+    costTotal = qty * costUnit;
+  }
+
+  var totalCost = costTotal + shipping + platformFee + otherFee;
+  var profit = revenue - totalCost;
+  var profitRate = revenue > 0 ? (profit / revenue * 100) : 0;
+
+  // Show result if any meaningful number entered
+  if (revenue > 0 || costTotal > 0 || costUnit > 0) {
+    document.getElementById('result-area').style.display = 'block';
+    document.getElementById('r_revenue').textContent = formatMoney(revenue);
+    document.getElementById('r_cost').textContent = formatMoney(costTotal);
+    document.getElementById('r_shipping').textContent = formatMoney(shipping);
+    document.getElementById('r_platform').textContent = formatMoney(platformFee);
+    document.getElementById('r_other').textContent = formatMoney(otherFee);
+    document.getElementById('r_total_cost').textContent = formatMoney(totalCost);
+
+    var profitEl = document.getElementById('r_profit');
+    profitEl.textContent = formatMoney(profit);
+    profitEl.className = 'amount ' + (profit >= 0 ? 'positive' : 'negative');
+    document.getElementById('r_profit_rate').textContent = '利润率：' + profitRate.toFixed(1) + '%';
+
+    renderShareResult(profit);
+  } else {
+    document.getElementById('result-area').style.display = 'none';
+  }
+}
+
+// ===== Profit Mode =====
+function selectProfitMode(mode) {
+  currentProfitMode = mode;
+  var soloBtn = document.getElementById('mode-solo');
+  var shareBtn = document.getElementById('mode-share');
+  var shareSection = document.getElementById('share-section');
+
+  if (mode === 'solo') {
+    soloBtn.classList.add('active');
+    shareBtn.classList.remove('active');
+    shareSection.style.display = 'none';
+  } else {
+    shareBtn.classList.add('active');
+    soloBtn.classList.remove('active');
+    shareSection.style.display = 'block';
+    loadShareSettings();
+  }
+  localStorage.setItem('boss_profit_mode', mode);
+  calcProfit();
+}
+
+function renderShareResult(profit) {
+  var container = document.getElementById('share-result');
+  var list = document.getElementById('share-list');
+
+  if (currentProfitMode !== 'share') {
+    container.style.display = 'none';
+    return;
+  }
+
+  list.innerHTML = '';
+  var totalPct = 0;
+  var hasShare = false;
+
+  for (var i = 1; i <= shareCount; i++) {
+    var nameEl = document.getElementById('share' + i + '_name');
+    var pctEl = document.getElementById('share' + i + '_pct');
+    if (!nameEl || !pctEl) continue;
+
+    var sName = nameEl.value.trim();
+    var sPct = parseFloat(pctEl.value) || 0;
+
+    if (sName && sPct > 0) {
+      hasShare = true;
+      totalPct += sPct;
+      var sAmount = profit * sPct / 100;
+
+      var row = document.createElement('div');
+      row.className = 'share-row';
+      var color = sAmount >= 0 ? 'var(--success)' : 'var(--danger)';
+      row.innerHTML = '<span class="name">' + sName + ' (' + sPct + '%)</span>' +
+                      '<span class="amount" style="color:' + color + '">' + formatMoney(sAmount) + '</span>';
+      list.appendChild(row);
+    }
+  }
+
+  if (totalPct > 0 && totalPct !== 100) {
+    var warn = document.createElement('div');
+    warn.style.cssText = 'color:var(--warning);font-size:12px;margin-top:6px';
+    warn.textContent = '⚠️ 分成比例合计' + totalPct + '%，非100%';
+    list.appendChild(warn);
+  }
+
+  container.style.display = hasShare ? 'block' : 'none';
+}
+
+function addShareRow() {
+  shareCount++;
+  var container = document.getElementById('share-container');
+  var div = document.createElement('div');
+  div.className = 'form-row share-item';
+  div.style.cssText = 'align-items:flex-end;margin-bottom:8px';
+  div.innerHTML =
+    '<div class="form-group" style="flex:2">' +
+      '<label>分成人' + shareCount + '</label>' +
+      '<input type="text" id="share' + shareCount + '_name" placeholder="姓名" oninput="saveShareSettings()">' +
+    '</div>' +
+    '<div class="form-group" style="flex:1">' +
+      '<label>比例 (%)</label>' +
+      '<input type="number" id="share' + shareCount + '_pct" value="0" min="0" max="100" step="1" oninput="saveShareSettings();calcProfit()">' +
+    '</div>' +
+        '<button type="button" class="btn btn-secondary" style="margin-bottom:0;padding:10px 12px;font-size:12px" data-action="remove-share">✕</button>';
+  container.appendChild(div);
+}
+
+function removeShareRow(btn) {
+  btn.parentElement.remove();
+  saveShareSettings();
+  calcProfit();
+}
+
+function saveShareSettings() {
+  var settings = [];
+  for (var i = 1; i <= shareCount; i++) {
+    var nameEl = document.getElementById('share' + i + '_name');
+    var pctEl = document.getElementById('share' + i + '_pct');
+    if (!nameEl || !pctEl) continue;
+    settings.push({ name: nameEl.value, pct: pctEl.value });
+  }
+  localStorage.setItem('boss_share_settings', JSON.stringify(settings));
+}
+
+function loadShareSettings() {
+  var raw = localStorage.getItem('boss_share_settings');
+  if (!raw) return;
+  try {
+    var settings = JSON.parse(raw);
+    if (!settings || settings.length === 0) return;
+    // First row already exists (share1)
+    for (var i = 0; i < settings.length; i++) {
+      if (i === 0) {
+        if (settings[i].name) document.getElementById('share1_name').value = settings[i].name;
+        if (settings[i].pct) document.getElementById('share1_pct').value = settings[i].pct;
+      } else {
+        addShareRow();
+        var nameEl = document.getElementById('share' + shareCount + '_name');
+        var pctEl = document.getElementById('share' + shareCount + '_pct');
+        if (nameEl && settings[i].name) nameEl.value = settings[i].name;
+        if (pctEl && settings[i].pct) pctEl.value = settings[i].pct;
+      }
+    }
+    calcProfit();
+  } catch(e) {}
+}
+
+// ===== Product History =====
+function loadProductList() {
+  var list = document.getElementById('product-list');
+  var names = [];
+  for (var i = 0; i < productHistory.length; i++) {
+    names.push(productHistory[i].name);
+  }
+  list.innerHTML = '';
+  for (var j = 0; j < names.length; j++) {
+    var opt = document.createElement('option');
+    opt.value = names[j];
+    list.appendChild(opt);
+  }
+}
+
+function renderProductHistory() {
+  var container = document.getElementById('product-history');
+  if (!container) return;
+  if (productHistory.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+  container.style.display = 'flex';
+  var html = '<span style="font-size:11px;color:#999;padding-top:3px">常用：</span>';
+  var count = Math.min(productHistory.length, 10);
+  for (var i = 0; i < count; i++) {
+    var p = productHistory[i];
+    html += '<span class="history-chip" data-idx="' + i + '">' + p.name + '</span>';
+  }
+  container.innerHTML = html;
+}
+
+function selectProduct(idx) {
+  var p = productHistory[idx];
+  if (!p) return;
+  document.getElementById('p_name').value = p.name;
+  if (p.costUnit) {
+    document.getElementById('p_cost_unit').value = p.costUnit;
+    document.getElementById('p_cost_total').value = (p.costUnit * num('p_qty')).toFixed(2);
+    costTotalManual = false;
+  }
+  if (p.shipping !== undefined) document.getElementById('p_shipping').value = p.shipping;
+  if (p.platformPct !== undefined) document.getElementById('p_platform_pct').value = p.platformPct;
+  else if (p.platformFee !== undefined) document.getElementById('p_platform_pct').value = 0;
+  calcProfit();
+}
+
+function saveProductHistory(name, costUnit, shipping, platformPct) {
+  if (!name) return;
+  // Remove existing
+  var filtered = [];
+  for (var i = 0; i < productHistory.length; i++) {
+    if (productHistory[i].name !== name) filtered.push(productHistory[i]);
+  }
+  filtered.unshift({ name: name, costUnit: costUnit || 0, shipping: shipping || 0, platformPct: platformPct || 0 });
+  if (filtered.length > 20) filtered = filtered.slice(0, 20);
+  productHistory = filtered;
+  saveHistory();
+  loadProductList();
+  renderProductHistory();
+}
+
+// ===== Save Calc Record =====
+function saveCalcRecord() {
+  var name = document.getElementById('p_name').value.trim();
+  var qty = num('p_qty');
+  var costUnit = num('p_cost_unit');
+  var costTotal = num('p_cost_total');
+  var shipping = num('p_shipping');
+  var platformPct = num('p_platform_pct');
+  var revenue = num('p_revenue');
+  var otherFee = num('p_other_fee');
+  // Platform fee = revenue * pct/100
+  var platformFee = Math.round(revenue * platformPct / 100 * 100) / 100;
+  document.getElementById('p_platform_fee').value = platformFee.toFixed(2);
+  var note = document.getElementById('p_note').value.trim();
+
+  if (!name) { showToast('请填写产品名称'); return; }
+  if (revenue <= 0 && costTotal <= 0 && costUnit <= 0) { showToast('请填写金额'); return; }
+
+  // Auto-calc cost total if needed
+  if (costTotal === 0 && costUnit > 0) costTotal = qty * costUnit;
+
+  var totalCost = costTotal + shipping + platformFee + otherFee;
+  var profit = revenue - totalCost;
+
+  // Save to product history
+  saveProductHistory(name, costUnit, shipping, platformPct);
+
+  // Collect shares
+  var shares = [];
+  if (currentProfitMode === 'share') {
+    for (var i = 1; i <= shareCount; i++) {
+      var sNameEl = document.getElementById('share' + i + '_name');
+      var sPctEl = document.getElementById('share' + i + '_pct');
+      if (!sNameEl || !sPctEl) continue;
+      var sName = sNameEl.value.trim();
+      var sPct = parseFloat(sPctEl.value) || 0;
+      if (sName && sPct > 0) shares.push({ name: sName, pct: sPct, amount: profit * sPct / 100 });
+    }
+  }
+
+  var record = {
+    id: Date.now(),
+    type: 'product',
+    profitMode: currentProfitMode,
+    name: name,
+    qty: qty,
+    costUnit: costUnit,
+    costTotal: costTotal,
+    shipping: shipping,
+    platformPct: platformPct,
+    platformFee: platformFee,
+    otherFee: otherFee,
+    revenue: revenue,
+    totalCost: totalCost,
+    profit: profit,
+    shares: shares,
+    note: note,
+    account: '公司',
+    date: new Date().toISOString()
+  };
+
+  records.unshift(record);
+  saveData();
+  showToast('✅ 已记录：' + name);
+  clearCalc();
+}
+
+// ===== Copy Result =====
+function copyResult(withCost) {
+  var name = document.getElementById('p_name').value.trim() || '产品';
+  var qty = num('p_qty');
+  var costUnit = num('p_cost_unit');
+  var costTotal = num('p_cost_total');
+  if (costTotal === 0 && costUnit > 0) costTotal = qty * costUnit;
+  var shipping = num('p_shipping');
+  var platformPct = num('p_platform_pct');
+  var revenue = num('p_revenue');
+  var otherFee = num('p_other_fee');
+  // Platform fee = revenue * pct/100
+  var platformFee = Math.round(revenue * platformPct / 100 * 100) / 100;
+  document.getElementById('p_platform_fee').value = platformFee.toFixed(2);
+  var totalCost = costTotal + shipping + platformFee + otherFee;
+  var profit = revenue - totalCost;
+  var profitRate = revenue > 0 ? (profit / revenue * 100).toFixed(1) : '0';
+
+  var text = '【' + name + '】\n';
+  text += '数量：' + qty + '\n';
+  if (withCost) {
+    text += '成本单价：¥' + costUnit.toFixed(2) + '\n';
+    text += '成本合计：¥' + costTotal.toFixed(2) + '\n';
+    text += '运费：¥' + shipping.toFixed(2) + '\n';
+    text += '平台扣点：' + platformPct + '%（¥' + platformFee.toFixed(2) + '）\n';
+    if (otherFee > 0) text += '其他费用：¥' + otherFee.toFixed(2) + '\n';
+    text += '总成本：¥' + totalCost.toFixed(2) + '\n';
+    text += '收款金额：¥' + revenue.toFixed(2) + '\n';
+    text += '——————\n';
+    text += '净利润：¥' + profit.toFixed(2) + '（利润率' + profitRate + '%）\n';
+  } else {
+    text += '收款金额：¥' + revenue.toFixed(2) + '\n';
+    text += '运费：¥' + shipping.toFixed(2) + '\n';
+    text += '平台扣点：' + platformPct + '%（¥' + platformFee.toFixed(2) + '）\n';
+    text += '——————\n';
+    text += '净利润：¥' + profit.toFixed(2) + '\n';
+  }
+
+  // Shares (both modes, but only shown if share mode)
+  if (currentProfitMode === 'share') {
+    for (var i = 1; i <= shareCount; i++) {
+      var sNameEl = document.getElementById('share' + i + '_name');
+      var sPctEl = document.getElementById('share' + i + '_pct');
+      if (!sNameEl || !sPctEl) continue;
+      var sName = sNameEl.value.trim();
+      var sPct = parseFloat(sPctEl.value) || 0;
+      if (sName && sPct > 0) {
+        text += sName + '(' + sPct + '%)：¥' + (profit * sPct / 100).toFixed(2) + '\n';
+      }
+    }
+  }
+
+  var noteEl = document.getElementById('p_note');
+  if (noteEl.value.trim()) text += '备注：' + noteEl.value.trim() + '\n';
+
+  copyToClipboard(text);
+}
+
+function copyFormula() {
+  var qty = num('p_qty');
+  var costUnit = num('p_cost_unit');
+  var costTotal = num('p_cost_total');
+  if (costTotal === 0 && costUnit > 0) costTotal = qty * costUnit;
+  var shipping = num('p_shipping');
+  var platformPct = num('p_platform_pct');
+  var revenue = num('p_revenue');
+  var platformFee = Math.round(revenue * platformPct / 100 * 100) / 100;
+  var otherFee = num('p_other_fee');
+  var profit = revenue - (costTotal + shipping + platformFee + otherFee);
+
+  // Partner share: find KGY's share amount
+  var partnerShare = 0;
+  if (currentProfitMode === 'share') {
+    for (var i = 1; i <= shareCount; i++) {
+      var nameEl = document.getElementById('share' + i + '_name');
+      var pctEl = document.getElementById('share' + i + '_pct');
+      if (!nameEl || !pctEl) continue;
+      var sName = nameEl.value.trim();
+      var sPct = parseFloat(pctEl.value) || 0;
+      if (sName && sPct > 0 && sName.toUpperCase() === 'KGY') {
+        partnerShare = profit * sPct / 100;
+      }
+    }
+  }
+
+  var partnerAbs = Math.abs(partnerShare);
+  var total = costTotal + shipping + partnerAbs;
+  if (platformFee > 0) total -= platformFee;
+  if (otherFee > 0) total += otherFee;
+
+  var text = costTotal.toFixed(2) + '+' + shipping.toFixed(2);
+  if (platformFee > 0) text += '-' + platformFee.toFixed(2);
+  if (otherFee > 0) text += '+' + otherFee.toFixed(2);
+  if (partnerAbs > 0) text += '+' + partnerAbs.toFixed(2);
+  text += '=' + total.toFixed(2);
+
+  copyToClipboard(text);
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function() {
+      showToast('📋 已复制到剪贴板');
+    }).catch(function() {
+      fallbackCopy(text);
+    });
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast('📋 已复制到剪贴板'); }
+  catch(e) { showToast('复制失败，请手动复制'); }
+  document.body.removeChild(ta);
+}
+
+// ===== Clear Calc =====
+function clearCalc() {
+  document.getElementById('p_name').value = '';
+  document.getElementById('p_cost_unit').value = '';
+  document.getElementById('p_cost_total').value = '';
+  document.getElementById('p_revenue').value = '';
+  document.getElementById('p_note').value = '';
+  document.getElementById('p_shipping').value = '0';
+  document.getElementById('p_platform_pct').value = '0';
+  document.getElementById('p_platform_fee').value = '0';
+  document.getElementById('p_other_fee').value = '0';
+  document.getElementById('p_qty').value = '1';
+  document.getElementById('p_region').value = '';
+  costTotalManual = false;
+  shippingManual = false;
+  document.getElementById('result-area').style.display = 'none';
+}
+
+// ===== Quick Record =====
+function selectQuickType(type) {
+  currentQuickType = type;
+  var incomeBtn = document.getElementById('qtype-income');
+  var expenseBtn = document.getElementById('qtype-expense');
+  var catSelect = document.getElementById('quick_category');
+
+  if (type === 'income') {
+    incomeBtn.classList.add('active');
+    expenseBtn.classList.remove('active');
+    catSelect.innerHTML = '<option value="销售收入">销售收入</option><option value="代发收入">代发收入</option><option value="其他收入">其他收入</option>';
+  } else {
+    expenseBtn.classList.add('active');
+    incomeBtn.classList.remove('active');
+    catSelect.innerHTML = '<option value="采购成本">采购成本</option><option value="物流运费">物流运费</option><option value="平台费用">平台费用</option><option value="办公支出">办公支出</option><option value="生活开支">生活开支</option><option value="其他支出">其他支出</option>';
+  }
+}
+
+function saveQuickRecord() {
+  var amount = num('quick_amount');
+  if (amount <= 0) { showToast('请输入金额'); return; }
+
+  var record = {
+    id: Date.now(),
+    type: currentQuickType,
+    amount: amount,
+    category: document.getElementById('quick_category').value,
+    account: document.getElementById('quick_account').value,
+    note: document.getElementById('quick_note').value.trim(),
+    date: new Date().toISOString()
+  };
+
+  records.unshift(record);
+  saveData();
+  showToast('✅ 已记录' + (currentQuickType === 'income' ? '收入' : '支出') + '：¥' + amount);
+  document.getElementById('quick_amount').value = '';
+  document.getElementById('quick_note').value = '';
+}
+
+// ===== Records List =====
+function renderRecords() {
+  var list = document.getElementById('record-list');
+  var filtered = records;
+
+  if (currentFilter === 'product') filtered = records.filter(function(r) { return r.type === 'product'; });
+  else if (currentFilter === 'income') filtered = records.filter(function(r) { return r.type === 'income'; });
+  else if (currentFilter === 'expense') filtered = records.filter(function(r) { return r.type === 'expense'; });
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="icon">📭</div>暂无记录<br><span style="font-size:13px">去"利润计算"或"快速记账"添加吧</span></div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    var r = filtered[i];
+    if (r.type === 'product') {
+      var modeTag = r.profitMode === 'share'
+        ? '<span class="tag" style="background:#fff3cd;color:#856404">🤝 分成</span>'
+        : '<span class="tag" style="background:#d4edda;color:#155724">💰 独立</span>';
+      // Calculate boss (YY) display profit
+      var bossDisplayProfit = r.profit;
+      if (r.profitMode === 'share' && r.shares && r.shares.length > 0) {
+        bossDisplayProfit = 0;
+        for (var bi = 0; bi < r.shares.length; bi++) {
+          if (r.shares[bi].name && r.shares[bi].name.toUpperCase() === 'YY') bossDisplayProfit = r.shares[bi].amount;
+        }
+      }
+      var sharesHtml = '';
+      if (r.shares && r.shares.length > 0) {
+        var shareTexts = [];
+        for (var s = 0; s < r.shares.length; s++) {
+          shareTexts.push(r.shares[s].name + '(' + r.shares[s].pct + '%): ¥' + r.shares[s].amount.toFixed(2));
+        }
+        sharesHtml = '<div class="record-detail">' + shareTexts.join(' · ') + '</div>';
+      }
+
+      html +=
+        '<div class="record-item">' +
+          '<div class="record-header">' +
+            '<div><div class="record-title">📦 ' + r.name + '</div>' +
+            '<div class="record-date">' + formatDate(r.date) + '</div></div>' +
+            '<span class="account-badge account-' + (r.account === '个人' ? 'personal' : 'company') + '">🏢 ' + (r.account || '公司') + '</span>' +
+          '</div>' +
+          '<div class="record-tags">' +
+            '<span class="tag tag-product">数量 ' + r.qty + '</span>' +
+            '<span class="tag">收款 ¥' + r.revenue.toFixed(2) + '</span>' +
+            '<span class="tag">成本 ¥' + r.totalCost.toFixed(2) + '</span>' +
+            modeTag +
+          '</div>' +
+          '<div class="record-amount ' + (bossDisplayProfit >= 0 ? 'income' : 'expense') + '">' +
+            (bossDisplayProfit >= 0 ? '+' : '') + formatMoney(bossDisplayProfit) + '</div>' +
+          sharesHtml +
+          (r.note ? '<div class="record-detail">📝 ' + r.note + '</div>' : '') +
+          '<div class="record-actions">' +
+            '<button type="button" class="btn btn-secondary" data-action="copy" data-id="' + r.id + '">📋 复制</button>' +
+            '<button type="button" class="btn btn-danger" data-action="delete" data-id="' + r.id + '">🗑 删除</button>' +
+          '</div>' +
+        '</div>';
+    } else {
+      html +=
+        '<div class="record-item">' +
+          '<div class="record-header">' +
+            '<div><div class="record-title">' + (r.type === 'income' ? '📈' : '📉') + ' ' + r.category + '</div>' +
+            '<div class="record-date">' + formatDate(r.date) + '</div></div>' +
+            '<span class="account-badge account-' + (r.account === '个人' ? 'personal' : 'company') + '">' +
+            (r.account === '个人' ? '🏠' : '🏢') + ' ' + r.account + '</span>' +
+          '</div>' +
+          '<div class="record-tags">' +
+            '<span class="tag ' + (r.type === 'income' ? 'tag-income' : 'tag-expense') + '">' +
+            (r.type === 'income' ? '收入' : '支出') + '</span>' +
+          '</div>' +
+          '<div class="record-amount ' + (r.type === 'income' ? 'income' : 'expense') + '">' +
+            (r.type === 'income' ? '+' : '-') + formatMoney(r.amount) + '</div>' +
+          (r.note ? '<div class="record-detail">📝 ' + r.note + '</div>' : '') +
+          '<div class="record-actions">' +
+            '<button type="button" class="btn btn-secondary" data-action="copy" data-id="' + r.id + '">📋 复制</button>' +
+            '<button type="button" class="btn btn-danger" data-action="delete" data-id="' + r.id + '">🗑 删除</button>' +
+          '</div>' +
+        '</div>';
+    }
+  }
+  list.innerHTML = html;
+}
+
+function filterRecords(type, el) {
+  currentFilter = type;
+  var chips = document.querySelectorAll('.filter-chip');
+  for (var i = 0; i < chips.length; i++) chips[i].classList.remove('active');
+  el.classList.add('active');
+  renderRecords();
+}
+
+function copyRecord(id) {
+  var r = null;
+  for (var i = 0; i < records.length; i++) { if (records[i].id === id) { r = records[i]; break; } }
+  if (!r) return;
+
+  var text = '';
+  if (r.type === 'product') {
+    text = '【' + r.name + '】\n';
+    text += '数量：' + r.qty + '\n';
+    text += '成本单价：¥' + r.costUnit.toFixed(2) + '\n';
+    text += '成本合计：¥' + r.costTotal.toFixed(2) + '\n';
+    text += '运费：¥' + r.shipping.toFixed(2) + '\n';
+    text += '平台扣点：¥' + r.platformFee.toFixed(2) + '\n';
+    if (r.otherFee > 0) text += '其他费用：¥' + r.otherFee.toFixed(2) + '\n';
+    text += '总成本：¥' + r.totalCost.toFixed(2) + '\n';
+    text += '收款金额：¥' + r.revenue.toFixed(2) + '\n';
+    text += '——————\n';
+    text += '净利润：¥' + r.profit.toFixed(2) + '（利润率' + (r.revenue > 0 ? (r.profit / r.revenue * 100).toFixed(1) : '0') + '%）\n';
+    if (r.shares && r.shares.length > 0) {
+      for (var s = 0; s < r.shares.length; s++) {
+        text += r.shares[s].name + '(' + r.shares[s].pct + '%)：¥' + r.shares[s].amount.toFixed(2) + '\n';
+      }
+    }
+    if (r.note) text += '备注：' + r.note + '\n';
+  } else {
+    text = (r.type === 'income' ? '📈 收入' : '📉 支出') + '\n';
+    text += '分类：' + r.category + '\n';
+    text += '金额：¥' + r.amount.toFixed(2) + '\n';
+    text += '账户：' + r.account + '\n';
+    if (r.note) text += '备注：' + r.note + '\n';
+    text += '时间：' + formatDate(r.date) + '\n';
+  }
+
+  copyToClipboard(text);
+}
+
+function deleteRecord(id) {
+  if (confirm('确定删除这条记录吗？')) {
+    records = records.filter(function(r) { return r.id !== id; });
+    saveData();
+    renderRecords();
+    showToast('🗑 已删除');
+  }
+}
+
+// ===== Stats =====
+function renderStats() {
+  var now = new Date();
+  var month = now.getMonth();
+  var year = now.getFullYear();
+
+  var totalIncome = 0, totalExpense = 0, monthIncome = 0, monthExpense = 0;
+  var productProfits = {};
+  var categoryStats = {};
+
+  for (var i = 0; i < records.length; i++) {
+    var r = records[i];
+    if (r.type === 'product') {
+      // Calculate boss (YY) profit: if share mode, only YY's portion
+      var bossProfit = r.profit;
+      if (r.profitMode === 'share' && r.shares && r.shares.length > 0) {
+        bossProfit = 0;
+        for (var si = 0; si < r.shares.length; si++) {
+          if (r.shares[si].name && r.shares[si].name.toUpperCase() === 'YY') {
+            bossProfit = r.shares[si].amount;
+          }
+        }
+      }
+      totalIncome += r.revenue;
+      totalExpense += r.totalCost;
+      var rDate = new Date(r.date);
+      if (rDate.getMonth() === month && rDate.getFullYear() === year) {
+        monthIncome += r.revenue;
+        monthExpense += r.totalCost;
+      }
+      if (!productProfits[r.name]) productProfits[r.name] = { revenue: 0, cost: 0, profit: 0, qty: 0 };
+      productProfits[r.name].revenue += r.revenue;
+      productProfits[r.name].cost += r.totalCost;
+      productProfits[r.name].profit += bossProfit;
+      productProfits[r.name].qty += r.qty;
+
+      var pcat = '产品销售';
+      if (!categoryStats[pcat]) categoryStats[pcat] = { income: 0, expense: 0 };
+      categoryStats[pcat].income += r.revenue;
+      categoryStats[pcat].expense += r.totalCost;
+    } else if (r.type === 'income') {
+      totalIncome += r.amount;
+      var iDate = new Date(r.date);
+      if (iDate.getMonth() === month && iDate.getFullYear() === year) monthIncome += r.amount;
+      if (!categoryStats[r.category]) categoryStats[r.category] = { income: 0, expense: 0 };
+      categoryStats[r.category].income += r.amount;
+    } else if (r.type === 'expense') {
+      totalExpense += r.amount;
+      var eDate = new Date(r.date);
+      if (eDate.getMonth() === month && eDate.getFullYear() === year) monthExpense += r.amount;
+      if (!categoryStats[r.category]) categoryStats[r.category] = { income: 0, expense: 0 };
+      categoryStats[r.category].expense += r.amount;
+    }
+  }
+
+  var totalProfit = 0;
+  var monthProfit = 0;
+  // Recalculate profit using boss (YY) share for product records
+  for (var pi = 0; pi < records.length; pi++) {
+    var pr = records[pi];
+    if (pr.type === 'product') {
+      var bp = pr.profit;
+      if (pr.profitMode === 'share' && pr.shares && pr.shares.length > 0) {
+        bp = 0;
+        for (var psi = 0; psi < pr.shares.length; psi++) {
+          if (pr.shares[psi].name && pr.shares[psi].name.toUpperCase() === 'YY') bp = pr.shares[psi].amount;
+        }
+      }
+      totalProfit += bp;
+      var pd = new Date(pr.date);
+      if (pd.getMonth() === month && pd.getFullYear() === year) monthProfit += bp;
+    }
+  }
+  // Add non-product income/expense
+  for (var ni = 0; ni < records.length; ni++) {
+    var nr = records[ni];
+    if (nr.type === 'income') {
+      totalProfit += nr.amount;
+      var nd = new Date(nr.date);
+      if (nd.getMonth() === month && nd.getFullYear() === year) monthProfit += nr.amount;
+    } else if (nr.type === 'expense') {
+      totalProfit -= nr.amount;
+      var ed2 = new Date(nr.date);
+      if (ed2.getMonth() === month && ed2.getFullYear() === year) monthProfit -= nr.amount;
+    }
+  }
+
+  document.getElementById('stat_month').textContent = year + '年' + (month+1) + '月汇总';
+  document.getElementById('stat_month_profit').textContent = formatMoney(monthProfit);
+  document.getElementById('stat_month_income').textContent = formatMoney(monthIncome);
+  document.getElementById('stat_month_expense').textContent = formatMoney(monthExpense);
+
+  var monthCount = 0;
+  for (var j = 0; j < records.length; j++) {
+    var d = new Date(records[j].date);
+    if (d.getMonth() === month && d.getFullYear() === year) monthCount++;
+  }
+  document.getElementById('stat_month_count').textContent = monthCount;
+
+  document.getElementById('stat_income').textContent = formatMoney(totalIncome);
+  document.getElementById('stat_expense').textContent = formatMoney(totalExpense);
+  document.getElementById('stat_profit').textContent = formatMoney(totalProfit);
+  document.getElementById('stat_count').textContent = records.length;
+
+  // Product ranking
+  var ranking = Object.keys(productProfits).map(function(key) {
+    return [key, productProfits[key]];
+  }).sort(function(a, b) { return b[1].profit - a[1].profit; });
+
+  var rankingEl = document.getElementById('product-ranking');
+  if (ranking.length > 0) {
+    var medals = ['🥇','🥈','🥉'];
+    var rHtml = '';
+    for (var k = 0; k < ranking.length; k++) {
+      var medal = k < 3 ? medals[k] : (k+1) + '.';
+      var color = ranking[k][1].profit >= 0 ? 'var(--success)' : 'var(--danger)';
+      rHtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0">' +
+        '<div><span style="font-size:18px;margin-right:8px">' + medal + '</span>' +
+        '<span style="font-weight:500">' + ranking[k][0] + '</span>' +
+        '<span style="font-size:12px;color:#999;margin-left:6px">×' + ranking[k][1].qty + '</span></div>' +
+        '<div style="text-align:right"><div style="font-weight:600;color:' + color + '">' + formatMoney(ranking[k][1].profit) + '</div>' +
+        '<div style="font-size:11px;color:#999">收¥' + ranking[k][1].revenue.toFixed(0) + ' · 成¥' + ranking[k][1].cost.toFixed(0) + '</div></div>' +
+        '</div>';
+    }
+    rankingEl.innerHTML = rHtml;
+  }
+
+  // Category stats
+  var catEl = document.getElementById('category-stats');
+  var cats = Object.keys(categoryStats);
+  if (cats.length > 0) {
+    var cHtml = '';
+    for (var c = 0; c < cats.length; c++) {
+      var cat = cats[c];
+      var data = categoryStats[cat];
+      var net = data.income - data.expense;
+      var netColor = net >= 0 ? 'var(--primary)' : 'var(--danger)';
+      cHtml += '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f0">' +
+        '<span style="font-weight:500">' + cat + '</span>' +
+        '<div style="text-align:right">' +
+        '<span style="color:var(--success)">+¥' + data.income.toFixed(2) + '</span>' +
+        (data.expense > 0 ? ' / <span style="color:var(--danger)">-¥' + data.expense.toFixed(2) + '</span>' : '') +
+        '<span style="font-weight:600;margin-left:8px;color:' + netColor + '">净' + formatMoney(net) + '</span>' +
+        '</div></div>';
+    }
+    catEl.innerHTML = cHtml;
+  }
+}
+
+// ===== Import/Export =====
+function exportData() {
+  var data = JSON.stringify(records, null, 2);
+  var blob = new Blob([data], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = '记账数据_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📤 已导出');
+}
+
+function handleImport(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (Array.isArray(data)) {
+        records = data;
+        saveData();
+        renderRecords();
+        showToast('📥 导入成功');
+      } else { showToast('❌ 文件格式错误'); }
+    } catch(err) { showToast('❌ 导入失败'); }
+  };
+  reader.readAsText(file);
+}
+
+function handleTextImport() {
+  var area = document.getElementById('import-text-area');
+  var btn = document.getElementById('btn-import-text-confirm');
+  if (area.style.display === 'none' || area.style.display === '') {
+    area.style.display = 'block';
+    btn.style.display = 'block';
+  } else {
+    area.style.display = 'none';
+    btn.style.display = 'none';
+  }
+}
+
+function confirmTextImport() {
+  var text = document.getElementById('import-text-area').value.trim();
+  if (!text) { showToast('❌ 请粘贴数据'); return; }
+  try {
+    var data = JSON.parse(text);
+    if (Array.isArray(data)) {
+      // 合并而非覆盖：检查是否已有相同ID的记录
+      var existingIds = new Set(records.map(function(r) { return r.id; }));
+      var newCount = 0;
+      data.forEach(function(item) {
+        if (!existingIds.has(item.id)) {
+          records.push(item);
+          newCount++;
+        }
+      });
+      records.sort(function(a, b) { return a.id - b.id; });
+      saveData();
+      renderRecords();
+      document.getElementById('import-text-area').style.display = 'none';
+      document.getElementById('btn-import-text-confirm').style.display = 'none';
+      document.getElementById('import-text-area').value = '';
+      showToast('📥 导入成功（新增' + newCount + '条）');
+    } else { showToast('❌ 格式错误：需要JSON数组'); }
+  } catch(err) { showToast('❌ JSON格式错误，请检查'); }
+}
+
+// ===== Start =====
+init();
+
+// ===== All Event Listeners (iPhone Safari compatible) =====
+// Tab switch
+document.getElementById('tab-btn-calculator').addEventListener('click', function() { switchTab('calculator', this); });
+document.getElementById('tab-btn-records').addEventListener('click', function() { switchTab('records', this); });
+document.getElementById('tab-btn-stats').addEventListener('click', function() { switchTab('stats', this); });
+
+// Profit mode
+document.getElementById('mode-solo').addEventListener('click', function() { selectProfitMode('solo'); });
+document.getElementById('mode-share').addEventListener('click', function() { selectProfitMode('share'); });
+
+// Quick type
+document.getElementById('qtype-income').addEventListener('click', function() { selectQuickType('income'); });
+document.getElementById('qtype-expense').addEventListener('click', function() { selectQuickType('expense'); });
+
+// Region + shipping
+document.getElementById('p_region').addEventListener('change', function() { onRegionChange(); });
+document.getElementById('p_shipping').addEventListener('input', function() { onShippingManual(); });
+document.getElementById('p_platform_pct').addEventListener('input', function() { calcProfit(); });
+
+// Calculator buttons
+document.getElementById('btn-save-calc').addEventListener('click', function() { saveCalcRecord(); });
+document.getElementById('btn-copy-full').addEventListener('click', function() { copyResult(true); });
+document.getElementById('btn-copy-formula').addEventListener('click', function() { copyFormula(); });
+document.getElementById('btn-clear-calc').addEventListener('click', function() { clearCalc(); });
+document.getElementById('btn-add-share').addEventListener('click', function() { addShareRow(); });
+
+// Quick record
+document.getElementById('btn-save-quick').addEventListener('click', function() { saveQuickRecord(); });
+
+// Export/Import
+document.getElementById('btn-export').addEventListener('click', function() { exportData(); });
+document.getElementById('btn-import').addEventListener('click', function() { document.getElementById('import-file').click(); });
+document.getElementById('btn-import-text').addEventListener('click', function() { handleTextImport(); });
+document.getElementById('btn-import-text-confirm').addEventListener('click', function() { confirmTextImport(); });
+
+// Filter chips (event delegation)
+document.querySelectorAll('.filter-chip').forEach(function(chip) {
+  chip.addEventListener('click', function() {
+    var filter = this.getAttribute('data-filter');
+    if (filter) filterRecords(filter, this);
+  });
+});
+
+// Record list (event delegation for dynamic buttons)
+document.getElementById('record-list').addEventListener('click', function(e) {
+  var target = e.target;
+  if (target.classList.contains('history-chip')) {
+    var idx = parseInt(target.getAttribute('data-idx'));
+    if (!isNaN(idx)) selectProduct(idx);
+  }
+  // Copy/delete buttons in records
+  if (target.tagName === 'BUTTON' || target.parentElement.tagName === 'BUTTON') {
+    var btn = target.tagName === 'BUTTON' ? target : target.parentElement;
+    if (btn.getAttribute('data-action') === 'copy') {
+      copyRecord(parseInt(btn.getAttribute('data-id')));
+    } else if (btn.getAttribute('data-action') === 'delete') {
+      deleteRecord(parseInt(btn.getAttribute('data-id')));
+    } else if (btn.getAttribute('data-action') === 'remove-share') {
+      btn.parentElement.remove();
+      saveShareSettings();
+      calcProfit();
+    }
+  }
+});
+</script>
+
+</body>
+</html>
