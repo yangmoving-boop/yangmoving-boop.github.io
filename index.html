@@ -564,6 +564,19 @@ input[type="number"] { text-align: right; }
 
 <!-- ===== Tab 3: 统计 ===== -->
 <div id="tab-stats" class="tab-content">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <button type="button" id="stat-month-prev" style="background:none;border:none;font-size:20px;padding:6px 10px;cursor:pointer;color:var(--text-secondary)">◀</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <select id="stat-year-select" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--card-bg);color:var(--text-primary)"></select>
+      <select id="stat-month-select" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:var(--card-bg);color:var(--text-primary)">
+        <option value="0">1月</option><option value="1">2月</option><option value="2">3月</option><option value="3">4月</option>
+        <option value="4">5月</option><option value="5">6月</option><option value="6">7月</option><option value="7">8月</option>
+        <option value="8">9月</option><option value="9">10月</option><option value="10">11月</option><option value="11">12月</option>
+      </select>
+    </div>
+    <button type="button" id="stat-month-next" style="background:none;border:none;font-size:20px;padding:6px 10px;cursor:pointer;color:var(--text-secondary)">▶</button>
+  </div>
+
   <div class="month-summary">
     <div class="month-label" id="stat_month">本月汇总</div>
     <div class="month-amount" id="stat_month_profit">¥0</div>
@@ -571,25 +584,6 @@ input[type="number"] { text-align: right; }
       <span>收入：<span id="stat_month_income">¥0</span></span>
       <span>支出：<span id="stat_month_expense">¥0</span></span>
       <span>记录：<span id="stat_month_count">0</span>笔</span>
-    </div>
-  </div>
-
-  <div class="stats-grid">
-    <div class="stat-card income">
-      <div class="stat-label">总收入</div>
-      <div class="stat-value" id="stat_income">¥0</div>
-    </div>
-    <div class="stat-card expense">
-      <div class="stat-label">总支出</div>
-      <div class="stat-value" id="stat_expense">¥0</div>
-    </div>
-    <div class="stat-card profit">
-      <div class="stat-label">净利润</div>
-      <div class="stat-value" id="stat_profit">¥0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">总记录</div>
-      <div class="stat-value" id="stat_count">0</div>
     </div>
   </div>
 
@@ -603,7 +597,11 @@ input[type="number"] { text-align: right; }
     <div id="category-stats"><div class="empty"><div class="icon">📂</div>暂无数据</div></div>
   </div>
 
-  <button type="button" class="btn btn-danger btn-full" id="btn-export" style="margin-top:16px">📤 导出全部数据</button>
+  <div style="display:flex;gap:8px;margin-top:16px">
+    <button type="button" class="btn btn-primary" id="btn-export-csv" style="flex:1">📊 导出CSV</button>
+    <button type="button" class="btn btn-secondary" id="btn-copy-json" style="flex:1">📋 复制JSON</button>
+  </div>
+  <button type="button" class="btn btn-danger btn-full" id="btn-export" style="margin-top:8px">📤 导出全部数据(JSON)</button>
   <button type="button" class="btn btn-secondary btn-full" id="btn-import" style="margin-top:8px">📥 导入数据</button>
   <button type="button" class="btn btn-secondary btn-full" id="btn-import-text" style="margin-top:8px">📋 粘贴导入</button>
   <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
@@ -1360,108 +1358,121 @@ function deleteRecord(id) {
 }
 
 // ===== Stats =====
-function renderStats() {
-  var now = new Date();
-  var month = now.getMonth();
-  var year = now.getFullYear();
+var statsYear, statsMonth;
 
-  var totalIncome = 0, totalExpense = 0, monthIncome = 0, monthExpense = 0;
+function initStatsMonthPicker() {
+  var now = new Date();
+  statsYear = now.getFullYear();
+  statsMonth = now.getMonth();
+  // Populate year dropdown
+  var yearSel = document.getElementById('stat-year-select');
+  var years = new Set();
+  years.add(statsYear);
+  for (var i = 0; i < records.length; i++) {
+    years.add(new Date(records[i].date).getFullYear());
+  }
+  var yearArr = Array.from(years).sort();
+  yearSel.innerHTML = '';
+  for (var y = 0; y < yearArr.length; y++) {
+    var opt = document.createElement('option');
+    opt.value = yearArr[y];
+    opt.textContent = yearArr[y] + '年';
+    if (yearArr[y] === statsYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  }
+  document.getElementById('stat-month-select').value = statsMonth;
+  refreshStats();
+}
+
+function refreshStats() {
+  statsYear = parseInt(document.getElementById('stat-year-select').value);
+  statsMonth = parseInt(document.getElementById('stat-month-select').value);
+  renderStats();
+}
+
+function changeStatsMonth(delta) {
+  statsMonth += delta;
+  if (statsMonth > 11) { statsMonth = 0; statsYear++; }
+  if (statsMonth < 0) { statsMonth = 11; statsYear--; }
+  document.getElementById('stat-year-select').value = statsYear;
+  document.getElementById('stat-month-select').value = statsMonth;
+  refreshStats();
+}
+
+function renderStats() {
+  var month = statsMonth;
+  var year = statsYear;
+
+  var monthIncome = 0, monthExpense = 0;
   var productProfits = {};
   var categoryStats = {};
 
+  function inMonth(dateStr) {
+    var d = new Date(dateStr);
+    return d.getMonth() === month && d.getFullYear() === year;
+  }
+
+  function getBossProfit(r) {
+    var bp = r.profit;
+    if (r.profitMode === 'share' && r.shares && r.shares.length > 0) {
+      bp = 0;
+      for (var si = 0; si < r.shares.length; si++) {
+        if (r.shares[si].name && r.shares[si].name.toUpperCase() === 'YY') bp = r.shares[si].amount;
+      }
+    }
+    return bp;
+  }
+
   for (var i = 0; i < records.length; i++) {
     var r = records[i];
+    if (!inMonth(r.date)) continue;
     if (r.type === 'product') {
-      // Calculate boss (YY) profit: if share mode, only YY's portion
-      var bossProfit = r.profit;
-      if (r.profitMode === 'share' && r.shares && r.shares.length > 0) {
-        bossProfit = 0;
-        for (var si = 0; si < r.shares.length; si++) {
-          if (r.shares[si].name && r.shares[si].name.toUpperCase() === 'YY') {
-            bossProfit = r.shares[si].amount;
-          }
-        }
-      }
-      totalIncome += r.revenue;
-      totalExpense += r.totalCost;
-      var rDate = new Date(r.date);
-      if (rDate.getMonth() === month && rDate.getFullYear() === year) {
-        monthIncome += r.revenue;
-        monthExpense += r.totalCost;
-      }
+      var bossProfit = getBossProfit(r);
+      monthIncome += r.revenue;
+      monthExpense += r.totalCost;
       if (!productProfits[r.name]) productProfits[r.name] = { revenue: 0, cost: 0, profit: 0, qty: 0 };
       productProfits[r.name].revenue += r.revenue;
       productProfits[r.name].cost += r.totalCost;
       productProfits[r.name].profit += bossProfit;
       productProfits[r.name].qty += r.qty;
-
       var pcat = '产品销售';
       if (!categoryStats[pcat]) categoryStats[pcat] = { income: 0, expense: 0 };
       categoryStats[pcat].income += r.revenue;
       categoryStats[pcat].expense += r.totalCost;
     } else if (r.type === 'income') {
-      totalIncome += r.amount;
-      var iDate = new Date(r.date);
-      if (iDate.getMonth() === month && iDate.getFullYear() === year) monthIncome += r.amount;
+      monthIncome += r.amount;
       if (!categoryStats[r.category]) categoryStats[r.category] = { income: 0, expense: 0 };
       categoryStats[r.category].income += r.amount;
     } else if (r.type === 'expense') {
-      totalExpense += r.amount;
-      var eDate = new Date(r.date);
-      if (eDate.getMonth() === month && eDate.getFullYear() === year) monthExpense += r.amount;
+      monthExpense += r.amount;
       if (!categoryStats[r.category]) categoryStats[r.category] = { income: 0, expense: 0 };
       categoryStats[r.category].expense += r.amount;
     }
   }
 
-  var totalProfit = 0;
   var monthProfit = 0;
-  // Recalculate profit using boss (YY) share for product records
   for (var pi = 0; pi < records.length; pi++) {
     var pr = records[pi];
+    if (!inMonth(pr.date)) continue;
     if (pr.type === 'product') {
-      var bp = pr.profit;
-      if (pr.profitMode === 'share' && pr.shares && pr.shares.length > 0) {
-        bp = 0;
-        for (var psi = 0; psi < pr.shares.length; psi++) {
-          if (pr.shares[psi].name && pr.shares[psi].name.toUpperCase() === 'YY') bp = pr.shares[psi].amount;
-        }
-      }
-      totalProfit += bp;
-      var pd = new Date(pr.date);
-      if (pd.getMonth() === month && pd.getFullYear() === year) monthProfit += bp;
+      monthProfit += getBossProfit(pr);
+    } else if (pr.type === 'income') {
+      monthProfit += pr.amount;
+    } else if (pr.type === 'expense') {
+      monthProfit -= pr.amount;
     }
   }
-  // Add non-product income/expense
-  for (var ni = 0; ni < records.length; ni++) {
-    var nr = records[ni];
-    if (nr.type === 'income') {
-      totalProfit += nr.amount;
-      var nd = new Date(nr.date);
-      if (nd.getMonth() === month && nd.getFullYear() === year) monthProfit += nr.amount;
-    } else if (nr.type === 'expense') {
-      totalProfit -= nr.amount;
-      var ed2 = new Date(nr.date);
-      if (ed2.getMonth() === month && ed2.getFullYear() === year) monthProfit -= nr.amount;
-    }
+
+  var monthCount = 0;
+  for (var j = 0; j < records.length; j++) {
+    if (inMonth(records[j].date)) monthCount++;
   }
 
   document.getElementById('stat_month').textContent = year + '年' + (month+1) + '月汇总';
   document.getElementById('stat_month_profit').textContent = formatMoney(monthProfit);
   document.getElementById('stat_month_income').textContent = formatMoney(monthIncome);
   document.getElementById('stat_month_expense').textContent = formatMoney(monthExpense);
-
-  var monthCount = 0;
-  for (var j = 0; j < records.length; j++) {
-    var d = new Date(records[j].date);
-    if (d.getMonth() === month && d.getFullYear() === year) monthCount++;
-  }
   document.getElementById('stat_month_count').textContent = monthCount;
-
-  document.getElementById('stat_income').textContent = formatMoney(totalIncome);
-  document.getElementById('stat_expense').textContent = formatMoney(totalExpense);
-  document.getElementById('stat_profit').textContent = formatMoney(totalProfit);
-  document.getElementById('stat_count').textContent = records.length;
 
   // Product ranking
   var ranking = Object.keys(productProfits).map(function(key) {
@@ -1484,6 +1495,8 @@ function renderStats() {
         '</div>';
     }
     rankingEl.innerHTML = rHtml;
+  } else {
+    rankingEl.innerHTML = '<div class="empty"><div class="icon">📊</div>该月暂无产品数据</div>';
   }
 
   // Category stats
@@ -1505,6 +1518,8 @@ function renderStats() {
         '</div></div>';
     }
     catEl.innerHTML = cHtml;
+  } else {
+    catEl.innerHTML = '<div class="empty"><div class="icon">📂</div>该月暂无分类数据</div>';
   }
 }
 
@@ -1518,7 +1533,97 @@ function exportData() {
   a.download = '记账数据_' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
   URL.revokeObjectURL(url);
-  showToast('📤 已导出');
+  showToast('📤 已导出JSON文件');
+}
+
+function exportCSV() {
+  if (records.length === 0) { showToast('❌ 暂无数据可导出'); return; }
+  // CSV header
+  var header = ['日期','类型','产品/分类','数量','单价成本','成本合计','运费','平台扣点(%)','平台费用','其他费用','收款金额','总成本','净利润','利润模式','账户','备注'];
+  var rows = [header];
+  for (var i = records.length - 1; i >= 0; i--) {
+    var r = records[i];
+    var row;
+    if (r.type === 'product') {
+      row = [
+        r.date ? r.date.slice(0,10) : '',
+        '产品销售',
+        r.name || '',
+        r.qty || 0,
+        r.costUnit || 0,
+        r.costTotal || 0,
+        r.shipping || 0,
+        r.platformPct || 0,
+        r.platformFee || 0,
+        r.otherFee || 0,
+        r.revenue || 0,
+        r.totalCost || 0,
+        r.profit || 0,
+        r.profitMode === 'share' ? '分成' : '独立',
+        r.account || '',
+        r.note || ''
+      ];
+    } else {
+      row = [
+        r.date ? r.date.slice(0,10) : '',
+        r.type === 'income' ? '收入' : '支出',
+        r.category || '',
+        '', '', '', '', '', '', '',
+        r.amount || 0,
+        r.amount || 0,
+        r.type === 'income' ? r.amount : -(r.amount || 0),
+        '',
+        r.account || '',
+        r.note || ''
+      ];
+    }
+    rows.push(row.map(function(cell) {
+      var s = String(cell);
+      if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
+        s = '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }));
+  }
+  // Use BOM for iOS Excel/Numbers compatibility
+  var csvContent = '\uFEFF' + rows.map(function(r) { return r.join(','); }).join('\n');
+  var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = '记账数据_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📊 已导出CSV文件');
+}
+
+function copyJSON() {
+  var data = JSON.stringify(records);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(data).then(function() {
+      showToast('📋 已复制到剪贴板（共' + records.length + '条）');
+    }).catch(function() {
+      fallbackCopy(data);
+    });
+  } else {
+    fallbackCopy(data);
+  }
+}
+
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    showToast('📋 已复制到剪贴板（共' + records.length + '条）');
+  } catch(e) {
+    showToast('❌ 复制失败，请手动复制');
+  }
+  document.body.removeChild(ta);
 }
 
 function handleImport(event) {
@@ -1584,7 +1689,7 @@ init();
 // Tab switch
 document.getElementById('tab-btn-calculator').addEventListener('click', function() { switchTab('calculator', this); });
 document.getElementById('tab-btn-records').addEventListener('click', function() { switchTab('records', this); });
-document.getElementById('tab-btn-stats').addEventListener('click', function() { switchTab('stats', this); });
+document.getElementById('tab-btn-stats').addEventListener('click', function() { switchTab('stats', this); initStatsMonthPicker(); });
 
 // Profit mode
 document.getElementById('mode-solo').addEventListener('click', function() { selectProfitMode('solo'); });
@@ -1610,10 +1715,18 @@ document.getElementById('btn-add-share').addEventListener('click', function() { 
 document.getElementById('btn-save-quick').addEventListener('click', function() { saveQuickRecord(); });
 
 // Export/Import
+document.getElementById('btn-export-csv').addEventListener('click', function() { exportCSV(); });
+document.getElementById('btn-copy-json').addEventListener('click', function() { copyJSON(); });
 document.getElementById('btn-export').addEventListener('click', function() { exportData(); });
 document.getElementById('btn-import').addEventListener('click', function() { document.getElementById('import-file').click(); });
 document.getElementById('btn-import-text').addEventListener('click', function() { handleTextImport(); });
 document.getElementById('btn-import-text-confirm').addEventListener('click', function() { confirmTextImport(); });
+
+// Stats month picker
+document.getElementById('stat-month-prev').addEventListener('click', function() { changeStatsMonth(-1); });
+document.getElementById('stat-month-next').addEventListener('click', function() { changeStatsMonth(1); });
+document.getElementById('stat-year-select').addEventListener('change', function() { refreshStats(); });
+document.getElementById('stat-month-select').addEventListener('change', function() { refreshStats(); });
 
 // Filter chips (event delegation)
 document.querySelectorAll('.filter-chip').forEach(function(chip) {
