@@ -120,6 +120,68 @@ input[type="number"] { text-align: right; }
 .btn-danger { background: #fff0f0; color: var(--danger); }
 .btn-full { width: 100%; }
 
+/* Product line styles */
+.product-line {
+  background: #f8faff;
+  border: 1px solid #e0eaff;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 10px;
+  position: relative;
+}
+.product-line-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.product-line-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.product-line-remove {
+  background: none;
+  border: none;
+  color: var(--danger);
+  font-size: 18px;
+  padding: 2px 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  line-height: 1;
+}
+.product-line-remove:active { background: #ffe0e0; }
+.product-line-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.product-line-fields .form-group {
+  margin-bottom: 0;
+  min-width: 0;
+}
+.product-line-fields .pl-name { flex: 1 1 100%; }
+.product-line-fields .pl-qty { flex: 0 0 60px; }
+.product-line-fields .pl-cost-unit { flex: 1 1 80px; }
+.product-line-fields .pl-cost-total { flex: 1 1 100px; }
+.product-line-fields .pl-delete { flex: 0 0 auto; display: flex; align-items: flex-end; }
+
+.btn-add-product {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: 2px dashed #d0dfff;
+  border-radius: 10px;
+  background: #f0f5ff;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 16px;
+  font-family: inherit;
+}
+.btn-add-product:active { background: #d6e4ff; }
+
 .result-card {
   background: linear-gradient(135deg, #f0f7ff, #e6f3ff);
   border: 1px solid #b3d9ff;
@@ -152,6 +214,21 @@ input[type="number"] { text-align: right; }
 .result-total .amount.positive { color: var(--success); }
 .result-total .amount.negative { color: var(--danger); }
 .result-total .label { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+.result-cost-breakdown {
+  background: #f6f9ff;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.result-cost-breakdown .cost-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+.result-cost-breakdown .cost-item-name { color: var(--text); }
+.result-cost-breakdown .cost-item-amount { font-weight: 500; }
 
 .share-section {
   background: #fff8e6;
@@ -352,6 +429,10 @@ input[type="number"] { text-align: right; }
 @media (min-width: 768px) {
   .container { max-width: 800px; margin: 0 auto; }
   .stats-grid { grid-template-columns: repeat(4, 1fr); }
+  .product-line-fields .pl-name { flex: 1 1 auto; }
+  .product-line-fields .pl-qty { flex: 0 0 80px; }
+  .product-line-fields .pl-cost-unit { flex: 1 1 120px; }
+  .product-line-fields .pl-cost-total { flex: 1 1 120px; }
 }
 </style>
 </head>
@@ -376,28 +457,13 @@ input[type="number"] { text-align: right; }
   <div class="card">
     <div class="card-title">📦 产品利润计算器</div>
 
-    <div class="form-group">
-      <label>产品名称 / 型号</label>
-      <input type="text" id="p_name" placeholder="如：NM2 蓝色" list="product-list">
-      <datalist id="product-list"></datalist>
-      <div id="product-history" class="history-chips" style="display:none"></div>
-    </div>
+    <datalist id="product-list"></datalist>
 
-    <div class="form-row">
-      <div class="form-group">
-        <label>数量</label>
-        <input type="number" id="p_qty" value="1" min="1" oninput="calcProfit()">
-      </div>
-      <div class="form-group">
-        <label>成本单价 (¥)</label>
-        <input type="number" id="p_cost_unit" placeholder="如：389" step="0.01" oninput="onCostUnitInput()">
-      </div>
-    </div>
+    <!-- Product lines container -->
+    <div id="product-lines"></div>
+    <button type="button" class="btn-add-product" id="btn-add-product-line">+ 添加型号</button>
 
-    <div class="form-group">
-      <label>成本合计 (¥) <span style="color:#999;font-size:11px">（自动=数量×单价，也可手动改）</span></label>
-      <input type="number" id="p_cost_total" placeholder="自动计算" step="0.01" oninput="onCostTotalInput()">
-    </div>
+    <div id="product-history" class="history-chips" style="display:none"></div>
 
     <div class="form-row">
       <div class="form-group" style="flex:1">
@@ -469,6 +535,7 @@ input[type="number"] { text-align: right; }
     <!-- Result -->
     <div id="result-area" style="display:none">
       <div class="result-card">
+        <div id="result-cost-breakdown"></div>
         <div class="result-row">
           <span class="result-label">收款金额</span>
           <span class="result-value" id="r_revenue">¥0</span>
@@ -615,16 +682,16 @@ input[type="number"] { text-align: right; }
 
 <script>
 // ===== State =====
-const STORAGE_KEY = 'boss_bookkeeping_data';
-const HISTORY_KEY = 'boss_product_history';
-let records = [];
-let productHistory = [];
-let currentFilter = 'all';
-let currentProfitMode = 'solo';
-let currentQuickType = 'income';
-let shareCount = 1;
-let costTotalManual = false; // user manually overrode cost total
-let shippingManual = false;
+var STORAGE_KEY = 'boss_bookkeeping_data';
+var HISTORY_KEY = 'boss_product_history';
+var records = [];
+var productHistory = [];
+var currentFilter = 'all';
+var currentProfitMode = 'solo';
+var currentQuickType = 'income';
+var shareCount = 1;
+var productLineCount = 0;
+var shippingManual = false;
 
 // ===== 顺丰运费数据（广州始发） =====
 var SF_DATA = {"广东同城":{"label":"广东同城","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":10,"continue_price":1},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":12,"continue_price":1},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":29,"continue_price":2}]},"广东省内":{"label":"广东省内","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":11,"continue_price":2},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":15,"continue_price":2},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":49,"continue_price":3}]},"北京":{"label":"北京","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"天津":{"label":"天津","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"上海":{"label":"上海","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"河北":{"label":"河北","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"河南":{"label":"河南","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"江苏":{"label":"江苏","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"浙江":{"label":"浙江","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"安徽":{"label":"安徽","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"湖北":{"label":"湖北","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":25,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":110,"continue_price":6.5}]},"广西":{"label":"广西","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":5.5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":24,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":109,"continue_price":6.5}]},"海南":{"label":"海南","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":5.5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":24,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":109,"continue_price":6.5}]},"江西":{"label":"江西","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":23,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":108,"continue_price":6.5}]},"福建":{"label":"福建","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":23,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":108,"continue_price":6.5}]},"湖南":{"label":"湖南","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":13,"continue_price":5.5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":24,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":109,"continue_price":6.5}]},"山东":{"label":"山东","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5.5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":120.5,"continue_price":7}]},"山西":{"label":"山西","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5.5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":120.5,"continue_price":7}]},"云南":{"label":"云南","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":112,"continue_price":6.5}]},"四川":{"label":"四川","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":112,"continue_price":6.5}]},"重庆":{"label":"重庆","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":112,"continue_price":6.5}]},"贵州":{"label":"贵州","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":5.5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":26,"continue_price":5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":111,"continue_price":6.5}]},"陕西":{"label":"陕西","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":27,"continue_price":5.5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":120.5,"continue_price":7}]},"辽宁":{"label":"辽宁","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":6.5},{"min_kg":3,"max_kg":15,"first_kg":3,"first_price":28,"continue_price":6},{"min_kg":15,"max_kg":99999,"first_kg":15,"first_price":100,"continue_price":7.5}]},"吉林":{"label":"吉林","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":8},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":8}]},"黑龙江":{"label":"黑龙江","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":15,"continue_price":8},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":8}]},"内蒙古":{"label":"内蒙古","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":17,"continue_price":7},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":7}]},"宁夏":{"label":"宁夏","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":17,"continue_price":7},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":7}]},"甘肃":{"label":"甘肃","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":17,"continue_price":7},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":7}]},"青海":{"label":"青海","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":17,"continue_price":7},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":31,"continue_price":6},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":133,"continue_price":7}]},"新疆":{"label":"新疆","tiers":[{"min_kg":0,"max_kg":3,"first_kg":1,"first_price":20,"continue_price":10.5},{"min_kg":3,"max_kg":20,"first_kg":3,"first_price":41,"continue_price":9.5},{"min_kg":20,"max_kg":99999,"first_kg":20,"first_price":202.5,"continue_price":10.5}]}};
@@ -676,6 +743,9 @@ function init() {
   try { productHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch(e) { productHistory = []; }
   loadRegionOptions();
   loadProductList();
+  // Init product lines: one default line
+  productLineCount = 0;
+  addProductLine();
   renderProductHistory();
   selectQuickType('income');
   renderRecords();
@@ -689,26 +759,26 @@ function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(records))
 function saveHistory() { localStorage.setItem(HISTORY_KEY, JSON.stringify(productHistory)); }
 
 function formatDate(d) {
-  const dt = new Date(d);
+  var dt = new Date(d);
   return (dt.getMonth()+1) + '月' + dt.getDate() + '日 ' +
     String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
 }
 
 function formatMoney(n) {
   if (isNaN(n)) n = 0;
-  const sign = n < 0 ? '-' : '';
+  var sign = n < 0 ? '-' : '';
   return sign + '¥' + Math.abs(n).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
 function num(id) {
-  const el = document.getElementById(id);
+  var el = document.getElementById(id);
   if (!el) return 0;
-  const v = parseFloat(el.value);
+  var v = parseFloat(el.value);
   return isNaN(v) ? 0 : v;
 }
 
 function showToast(msg) {
-  const t = document.getElementById('toast');
+  var t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(function() { t.classList.remove('show'); }, 2000);
@@ -726,26 +796,142 @@ function switchTab(name, el) {
   if (name === 'stats') renderStats();
 }
 
-// ===== Cost Total Auto-calc =====
-function onCostUnitInput() {
-  if (!costTotalManual) {
-    var qty = num('p_qty');
-    var unit = num('p_cost_unit');
-    document.getElementById('p_cost_total').value = (qty * unit).toFixed(2);
+// ===== Product Line Management =====
+function addProductLine(preset) {
+  productLineCount++;
+  var idx = productLineCount;
+  var container = document.getElementById('product-lines');
+  var div = document.createElement('div');
+  div.className = 'product-line';
+  div.id = 'product-line-' + idx;
+  div.setAttribute('data-line-idx', idx);
+
+  div.innerHTML =
+    '<div class="product-line-header">' +
+      '<span class="product-line-label">型号 ' + idx + '</span>' +
+      '<button type="button" class="product-line-remove" data-action="remove-product-line" data-line-idx="' + idx + '" title="删除此行">✕</button>' +
+    '</div>' +
+    '<div class="product-line-fields">' +
+      '<div class="form-group pl-name">' +
+        '<label>产品名称 / 型号</label>' +
+        '<input type="text" id="pl_name_' + idx + '" placeholder="如：NM2 蓝色" list="product-list">' +
+      '</div>' +
+      '<div class="form-group pl-qty">' +
+        '<label>数量</label>' +
+        '<input type="number" id="pl_qty_' + idx + '" value="1" min="1">' +
+      '</div>' +
+      '<div class="form-group pl-cost-unit">' +
+        '<label>单价 (¥)</label>' +
+        '<input type="number" id="pl_cost_unit_' + idx + '" placeholder="如：389" step="0.01">' +
+      '</div>' +
+      '<div class="form-group pl-cost-total">' +
+        '<label>成本合计 (¥)</label>' +
+        '<input type="number" id="pl_cost_total_' + idx + '" placeholder="自动" step="0.01">' +
+      '</div>' +
+    '</div>';
+
+  container.appendChild(div);
+
+  // Set preset values if provided
+  if (preset) {
+    if (preset.name) document.getElementById('pl_name_' + idx).value = preset.name;
+    if (preset.qty) document.getElementById('pl_qty_' + idx).value = preset.qty;
+    if (preset.costUnit) document.getElementById('pl_cost_unit_' + idx).value = preset.costUnit;
+    if (preset.costTotal) document.getElementById('pl_cost_total_' + idx).value = preset.costTotal;
   }
+
+  // Auto-calc cost total on qty/unit change
+  document.getElementById('pl_qty_' + idx).addEventListener('input', (function(lineIdx) {
+    return function() { autoCalcLineCost(lineIdx); calcProfit(); };
+  })(idx));
+  document.getElementById('pl_cost_unit_' + idx).addEventListener('input', (function(lineIdx) {
+    return function() { autoCalcLineCost(lineIdx); calcProfit(); };
+  })(idx));
+  document.getElementById('pl_cost_total_' + idx).addEventListener('input', function() { calcProfit(); });
+  document.getElementById('pl_name_' + idx).addEventListener('input', function() { calcProfit(); });
+
+  updateRemoveButtons();
+  updateLineLabels();
+}
+
+function autoCalcLineCost(idx) {
+  var totalEl = document.getElementById('pl_cost_total_' + idx);
+  if (!totalEl) return;
+  // Only auto-calc if user hasn't manually set it (check if it's empty or was auto-set)
+  var qty = num('pl_qty_' + idx);
+  var unit = num('pl_cost_unit_' + idx);
+  if (unit > 0) {
+    totalEl.value = (qty * unit).toFixed(2);
+  }
+}
+
+function removeProductLine(idx) {
+  var lines = document.getElementById('product-lines');
+  var line = document.getElementById('product-line-' + idx);
+  if (!line) return;
+  // Must keep at least one line
+  var allLines = lines.querySelectorAll('.product-line');
+  if (allLines.length <= 1) {
+    showToast('至少保留一行产品');
+    return;
+  }
+  line.remove();
+  updateRemoveButtons();
+  updateLineLabels();
   calcProfit();
 }
 
-function onCostTotalInput() {
-  costTotalManual = true;
-  calcProfit();
+function updateRemoveButtons() {
+  var lines = document.getElementById('product-lines').querySelectorAll('.product-line');
+  for (var i = 0; i < lines.length; i++) {
+    var removeBtn = lines[i].querySelector('.product-line-remove');
+    if (removeBtn) {
+      removeBtn.style.display = lines.length <= 1 ? 'none' : '';
+    }
+  }
+}
+
+function updateLineLabels() {
+  var lines = document.getElementById('product-lines').querySelectorAll('.product-line');
+  for (var i = 0; i < lines.length; i++) {
+    var label = lines[i].querySelector('.product-line-label');
+    if (label) label.textContent = '型号 ' + (i + 1);
+  }
+}
+
+function getProductLines() {
+  var lines = document.getElementById('product-lines').querySelectorAll('.product-line');
+  var result = [];
+  for (var i = 0; i < lines.length; i++) {
+    var idx = lines[i].getAttribute('data-line-idx');
+    result.push({
+      name: (document.getElementById('pl_name_' + idx).value || '').trim(),
+      qty: num('pl_qty_' + idx) || 0,
+      costUnit: num('pl_cost_unit_' + idx) || 0,
+      costTotal: num('pl_cost_total_' + idx) || 0
+    });
+  }
+  return result;
 }
 
 // ===== Profit Calculator =====
 function calcProfit() {
-  var qty = num('p_qty');
-  var costUnit = num('p_cost_unit');
-  var costTotal = num('p_cost_total');
+  var items = getProductLines();
+  var totalProductCost = 0;
+  var totalQty = 0;
+  var allNames = [];
+
+  for (var i = 0; i < items.length; i++) {
+    var cost = items[i].costTotal;
+    if (cost === 0 && items[i].costUnit > 0) {
+      cost = items[i].qty * items[i].costUnit;
+    }
+    items[i]._effectiveCost = cost;
+    totalProductCost += cost;
+    totalQty += items[i].qty;
+    if (items[i].name) allNames.push(items[i].name);
+  }
+
   var shipping = num('p_shipping');
   var platformPct = num('p_platform_pct');
   var revenue = num('p_revenue');
@@ -754,20 +940,15 @@ function calcProfit() {
   var platformFee = Math.round(revenue * platformPct / 100 * 100) / 100;
   document.getElementById('p_platform_fee').value = platformFee.toFixed(2);
 
-  // If cost total is 0 but cost unit has value, auto-calc
-  if (costTotal === 0 && costUnit > 0) {
-    costTotal = qty * costUnit;
-  }
-
-  var totalCost = costTotal + shipping + platformFee + otherFee;
+  var totalCost = totalProductCost + shipping + platformFee + otherFee;
   var profit = revenue - totalCost;
   var profitRate = revenue > 0 ? (profit / revenue * 100) : 0;
 
   // Show result if any meaningful number entered
-  if (revenue > 0 || costTotal > 0 || costUnit > 0) {
+  if (revenue > 0 || totalProductCost > 0) {
     document.getElementById('result-area').style.display = 'block';
     document.getElementById('r_revenue').textContent = formatMoney(revenue);
-    document.getElementById('r_cost').textContent = formatMoney(costTotal);
+    document.getElementById('r_cost').textContent = formatMoney(totalProductCost);
     document.getElementById('r_shipping').textContent = formatMoney(shipping);
     document.getElementById('r_platform').textContent = formatMoney(platformFee);
     document.getElementById('r_other').textContent = formatMoney(otherFee);
@@ -777,6 +958,21 @@ function calcProfit() {
     profitEl.textContent = formatMoney(profit);
     profitEl.className = 'amount ' + (profit >= 0 ? 'positive' : 'negative');
     document.getElementById('r_profit_rate').textContent = '利润率：' + profitRate.toFixed(1) + '%';
+
+    // Cost breakdown for multiple products
+    var breakdownEl = document.getElementById('result-cost-breakdown');
+    if (items.length > 1) {
+      var html = '<div class="result-cost-breakdown">';
+      for (var j = 0; j < items.length; j++) {
+        if (items[j].name) {
+          html += '<div class="cost-item"><span class="cost-item-name">' + items[j].name + ' ×' + items[j].qty + '</span><span class="cost-item-amount">' + formatMoney(items[j]._effectiveCost) + '</span></div>';
+        }
+      }
+      html += '</div>';
+      breakdownEl.innerHTML = html;
+    } else {
+      breakdownEl.innerHTML = '';
+    }
 
     renderShareResult(profit);
   } else {
@@ -944,12 +1140,29 @@ function renderProductHistory() {
 function selectProduct(idx) {
   var p = productHistory[idx];
   if (!p) return;
-  document.getElementById('p_name').value = p.name;
-  if (p.costUnit) {
-    document.getElementById('p_cost_unit').value = p.costUnit;
-    document.getElementById('p_cost_total').value = (p.costUnit * num('p_qty')).toFixed(2);
-    costTotalManual = false;
+
+  // Find the last empty line; if all lines have content, add a new one
+  var lines = document.getElementById('product-lines').querySelectorAll('.product-line');
+  var targetLine = null;
+  for (var i = 0; i < lines.length; i++) {
+    var lineIdx = lines[i].getAttribute('data-line-idx');
+    var nameVal = (document.getElementById('pl_name_' + lineIdx).value || '').trim();
+    if (!nameVal) {
+      targetLine = lineIdx;
+    }
   }
+  if (!targetLine) {
+    // All lines have content, add a new one
+    addProductLine({ name: p.name, qty: 1, costUnit: p.costUnit || 0 });
+  } else {
+    document.getElementById('pl_name_' + targetLine).value = p.name;
+    if (p.costUnit) {
+      document.getElementById('pl_cost_unit_' + targetLine).value = p.costUnit;
+      var qty = num('pl_qty_' + targetLine);
+      document.getElementById('pl_cost_total_' + targetLine).value = (qty * p.costUnit).toFixed(2);
+    }
+  }
+
   if (p.shipping !== undefined) document.getElementById('p_shipping').value = p.shipping;
   if (p.platformPct !== undefined) document.getElementById('p_platform_pct').value = p.platformPct;
   else if (p.platformFee !== undefined) document.getElementById('p_platform_pct').value = 0;
@@ -973,10 +1186,32 @@ function saveProductHistory(name, costUnit, shipping, platformPct) {
 
 // ===== Save Calc Record =====
 function saveCalcRecord() {
-  var name = document.getElementById('p_name').value.trim();
-  var qty = num('p_qty');
-  var costUnit = num('p_cost_unit');
-  var costTotal = num('p_cost_total');
+  var items = getProductLines();
+  var allNames = [];
+  var totalQty = 0;
+  var totalCostUnit = 0;
+  var totalCostTotal = 0;
+  var validItems = [];
+
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    // Auto-calc cost total if needed
+    if (it.costTotal === 0 && it.costUnit > 0) {
+      it.costTotal = it.qty * it.costUnit;
+    }
+    if (it.name) {
+      allNames.push(it.name);
+      validItems.push({ name: it.name, qty: it.qty, costUnit: it.costUnit, costTotal: it.costTotal });
+      totalQty += it.qty;
+      totalCostTotal += it.costTotal;
+      if (it.costUnit > 0 && totalCostUnit === 0) totalCostUnit = it.costUnit; // Use first item's unit as default
+    }
+  }
+
+  var name = allNames.join(' · ');
+  var qty = totalQty;
+  var costUnit = totalCostUnit;
+  var costTotal = totalCostTotal;
   var shipping = num('p_shipping');
   var platformPct = num('p_platform_pct');
   var revenue = num('p_revenue');
@@ -987,16 +1222,15 @@ function saveCalcRecord() {
   var note = document.getElementById('p_note').value.trim();
 
   if (!name) { showToast('请填写产品名称'); return; }
-  if (revenue <= 0 && costTotal <= 0 && costUnit <= 0) { showToast('请填写金额'); return; }
-
-  // Auto-calc cost total if needed
-  if (costTotal === 0 && costUnit > 0) costTotal = qty * costUnit;
+  if (revenue <= 0 && costTotal <= 0) { showToast('请填写金额'); return; }
 
   var totalCost = costTotal + shipping + platformFee + otherFee;
   var profit = revenue - totalCost;
 
-  // Save to product history
-  saveProductHistory(name, costUnit, shipping, platformPct);
+  // Save each product to history
+  for (var h = 0; h < validItems.length; h++) {
+    saveProductHistory(validItems[h].name, validItems[h].costUnit, shipping, platformPct);
+  }
 
   // Collect shares
   var shares = [];
@@ -1019,6 +1253,7 @@ function saveCalcRecord() {
     qty: qty,
     costUnit: costUnit,
     costTotal: costTotal,
+    items: validItems.length > 0 ? validItems : undefined,
     shipping: shipping,
     platformPct: platformPct,
     platformFee: platformFee,
@@ -1040,43 +1275,61 @@ function saveCalcRecord() {
 
 // ===== Copy Result =====
 function copyResult(withCost) {
-  var name = document.getElementById('p_name').value.trim() || '产品';
-  var qty = num('p_qty');
-  var costUnit = num('p_cost_unit');
-  var costTotal = num('p_cost_total');
-  if (costTotal === 0 && costUnit > 0) costTotal = qty * costUnit;
+  var items = getProductLines();
+  var allNames = [];
+  var totalCostTotal = 0;
+  var totalQty = 0;
+  var validItems = [];
+
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    if (it.costTotal === 0 && it.costUnit > 0) it.costTotal = it.qty * it.costUnit;
+    totalCostTotal += it.costTotal;
+    totalQty += it.qty;
+    if (it.name) {
+      allNames.push(it.name);
+      validItems.push(it);
+    }
+  }
+
+  var name = allNames.join(' · ');
+  if (!name) name = '产品';
   var shipping = num('p_shipping');
   var platformPct = num('p_platform_pct');
   var revenue = num('p_revenue');
   var otherFee = num('p_other_fee');
-  // Platform fee = revenue * pct/100
   var platformFee = Math.round(revenue * platformPct / 100 * 100) / 100;
   document.getElementById('p_platform_fee').value = platformFee.toFixed(2);
-  var totalCost = costTotal + shipping + platformFee + otherFee;
+  var totalCost = totalCostTotal + shipping + platformFee + otherFee;
   var profit = revenue - totalCost;
   var profitRate = revenue > 0 ? (profit / revenue * 100).toFixed(1) : '0';
 
-  var text = '【' + name + '】\n';
-  text += '数量：' + qty + '\n';
+  var text = '【订单详情】\n';
+  for (var j = 0; j < validItems.length; j++) {
+    text += validItems[j].name + ' ×' + validItems[j].qty + '\n';
+    if (withCost) {
+      text += '  成本：' + formatMoney(validItems[j].costTotal) + '\n';
+    }
+  }
   if (withCost) {
-    text += '成本单价：¥' + costUnit.toFixed(2) + '\n';
-    text += '成本合计：¥' + costTotal.toFixed(2) + '\n';
-    text += '运费：¥' + shipping.toFixed(2) + '\n';
-    text += '平台扣点：' + platformPct + '%（¥' + platformFee.toFixed(2) + '）\n';
-    if (otherFee > 0) text += '其他费用：¥' + otherFee.toFixed(2) + '\n';
-    text += '总成本：¥' + totalCost.toFixed(2) + '\n';
-    text += '收款金额：¥' + revenue.toFixed(2) + '\n';
     text += '——————\n';
-    text += '净利润：¥' + profit.toFixed(2) + '（利润率' + profitRate + '%）\n';
+    text += '产品成本合计：' + formatMoney(totalCostTotal) + '\n';
+    text += '运费：' + formatMoney(shipping) + '\n';
+    text += '平台扣点：' + platformPct + '%（' + formatMoney(platformFee) + '）\n';
+    if (otherFee > 0) text += '其他费用：' + formatMoney(otherFee) + '\n';
+    text += '总成本：' + formatMoney(totalCost) + '\n';
+    text += '收款金额：' + formatMoney(revenue) + '\n';
+    text += '——————\n';
+    text += '净利润：' + formatMoney(profit) + '（利润率' + profitRate + '%）\n';
   } else {
-    text += '收款金额：¥' + revenue.toFixed(2) + '\n';
-    text += '运费：¥' + shipping.toFixed(2) + '\n';
-    text += '平台扣点：' + platformPct + '%（¥' + platformFee.toFixed(2) + '）\n';
+    text += '收款金额：' + formatMoney(revenue) + '\n';
+    text += '运费：' + formatMoney(shipping) + '\n';
+    text += '平台扣点：' + platformPct + '%（' + formatMoney(platformFee) + '）\n';
     text += '——————\n';
-    text += '净利润：¥' + profit.toFixed(2) + '\n';
+    text += '净利润：' + formatMoney(profit) + '\n';
   }
 
-  // Shares (both modes, but only shown if share mode)
+  // Shares
   if (currentProfitMode === 'share') {
     for (var i = 1; i <= shareCount; i++) {
       var sNameEl = document.getElementById('share' + i + '_name');
@@ -1085,7 +1338,7 @@ function copyResult(withCost) {
       var sName = sNameEl.value.trim();
       var sPct = parseFloat(sPctEl.value) || 0;
       if (sName && sPct > 0) {
-        text += sName + '(' + sPct + '%)：¥' + (profit * sPct / 100).toFixed(2) + '\n';
+        text += sName + '(' + sPct + '%)：' + formatMoney(profit * sPct / 100) + '\n';
       }
     }
   }
@@ -1097,16 +1350,20 @@ function copyResult(withCost) {
 }
 
 function copyFormula() {
-  var qty = num('p_qty');
-  var costUnit = num('p_cost_unit');
-  var costTotal = num('p_cost_total');
-  if (costTotal === 0 && costUnit > 0) costTotal = qty * costUnit;
+  var items = getProductLines();
+  var totalCostTotal = 0;
+  for (var i = 0; i < items.length; i++) {
+    var cost = items[i].costTotal;
+    if (cost === 0 && items[i].costUnit > 0) cost = items[i].qty * items[i].costUnit;
+    totalCostTotal += cost;
+  }
+
   var shipping = num('p_shipping');
   var platformPct = num('p_platform_pct');
   var revenue = num('p_revenue');
   var platformFee = Math.round(revenue * platformPct / 100 * 100) / 100;
   var otherFee = num('p_other_fee');
-  var profit = revenue - (costTotal + shipping + platformFee + otherFee);
+  var profit = revenue - (totalCostTotal + shipping + platformFee + otherFee);
 
   // Partner share: find KGY's share amount
   var partnerShare = 0;
@@ -1124,11 +1381,11 @@ function copyFormula() {
   }
 
   var partnerAbs = Math.abs(partnerShare);
-  var total = costTotal + shipping + partnerAbs;
+  var total = totalCostTotal + shipping + partnerAbs;
   if (platformFee > 0) total -= platformFee;
   if (otherFee > 0) total += otherFee;
 
-  var text = costTotal.toFixed(2) + '+' + shipping.toFixed(2);
+  var text = totalCostTotal.toFixed(2) + '+' + shipping.toFixed(2);
   if (platformFee > 0) text += '-' + platformFee.toFixed(2);
   if (otherFee > 0) text += '+' + otherFee.toFixed(2);
   if (partnerAbs > 0) text += '+' + partnerAbs.toFixed(2);
@@ -1163,18 +1420,18 @@ function fallbackCopy(text) {
 
 // ===== Clear Calc =====
 function clearCalc() {
-  document.getElementById('p_name').value = '';
-  document.getElementById('p_cost_unit').value = '';
-  document.getElementById('p_cost_total').value = '';
+  var lines = document.getElementById('product-lines');
+  lines.innerHTML = '';
+  productLineCount = 0;
+  addProductLine(); // Add one fresh empty line
+
   document.getElementById('p_revenue').value = '';
   document.getElementById('p_note').value = '';
   document.getElementById('p_shipping').value = '0';
   document.getElementById('p_platform_pct').value = '0';
   document.getElementById('p_platform_fee').value = '0';
   document.getElementById('p_other_fee').value = '0';
-  document.getElementById('p_qty').value = '1';
   document.getElementById('p_region').value = '';
-  costTotalManual = false;
   shippingManual = false;
   document.getElementById('result-area').style.display = 'none';
 }
@@ -1256,6 +1513,16 @@ function renderRecords() {
         sharesHtml = '<div class="record-detail">' + shareTexts.join(' · ') + '</div>';
       }
 
+      // Product detail: show items if available
+      var productDetail = '';
+      if (r.items && r.items.length > 1) {
+        var detailLines = [];
+        for (var pi = 0; pi < r.items.length; pi++) {
+          detailLines.push(r.items[pi].name + ' ×' + r.items[pi].qty + '（成本 ¥' + r.items[pi].costTotal.toFixed(2) + '）');
+        }
+        productDetail = '<div class="record-detail">📦 ' + detailLines.join('<br>📦 ') + '</div>';
+      }
+
       html +=
         '<div class="record-item">' +
           '<div class="record-header">' +
@@ -1263,6 +1530,7 @@ function renderRecords() {
             '<div class="record-date">' + formatDate(r.date) + '</div></div>' +
             '<span class="account-badge account-' + (r.account === '个人' ? 'personal' : 'company') + '">🏢 ' + (r.account || '公司') + '</span>' +
           '</div>' +
+          productDetail +
           '<div class="record-tags">' +
             '<span class="tag tag-product">数量 ' + r.qty + '</span>' +
             '<span class="tag">收款 ¥' + r.revenue.toFixed(2) + '</span>' +
@@ -1319,12 +1587,20 @@ function copyRecord(id) {
 
   var text = '';
   if (r.type === 'product') {
-    text = '【' + r.name + '】\n';
-    text += '数量：' + r.qty + '\n';
-    text += '成本单价：¥' + r.costUnit.toFixed(2) + '\n';
-    text += '成本合计：¥' + r.costTotal.toFixed(2) + '\n';
+    text = '【订单详情】\n';
+    if (r.items && r.items.length > 0) {
+      for (var it = 0; it < r.items.length; it++) {
+        text += r.items[it].name + ' ×' + r.items[it].qty + '\n';
+        text += '  成本：¥' + r.items[it].costTotal.toFixed(2) + '\n';
+      }
+    } else {
+      text += r.name + ' ×' + r.qty + '\n';
+      text += '  成本：¥' + r.costTotal.toFixed(2) + '\n';
+    }
+    text += '——————\n';
+    text += '产品成本合计：¥' + r.costTotal.toFixed(2) + '\n';
     text += '运费：¥' + r.shipping.toFixed(2) + '\n';
-    text += '平台扣点：¥' + r.platformFee.toFixed(2) + '\n';
+    text += '平台扣点：' + (r.platformPct || 0) + '%（¥' + r.platformFee.toFixed(2) + '）\n';
     if (r.otherFee > 0) text += '其他费用：¥' + r.otherFee.toFixed(2) + '\n';
     text += '总成本：¥' + r.totalCost.toFixed(2) + '\n';
     text += '收款金额：¥' + r.revenue.toFixed(2) + '\n';
@@ -1423,6 +1699,15 @@ function renderStats() {
     return bp;
   }
 
+  // Helper: add product to ranking stats
+  function addProductToStats(pName, revenue, totalCost, bossProfit, qty) {
+    if (!productProfits[pName]) productProfits[pName] = { revenue: 0, cost: 0, profit: 0, qty: 0 };
+    productProfits[pName].revenue += revenue;
+    productProfits[pName].cost += totalCost;
+    productProfits[pName].profit += bossProfit;
+    productProfits[pName].qty += qty;
+  }
+
   for (var i = 0; i < records.length; i++) {
     var r = records[i];
     if (!inMonth(r.date)) continue;
@@ -1430,11 +1715,28 @@ function renderStats() {
       var bossProfit = getBossProfit(r);
       monthIncome += r.revenue;
       monthExpense += r.totalCost;
-      if (!productProfits[r.name]) productProfits[r.name] = { revenue: 0, cost: 0, profit: 0, qty: 0 };
-      productProfits[r.name].revenue += r.revenue;
-      productProfits[r.name].cost += r.totalCost;
-      productProfits[r.name].profit += bossProfit;
-      productProfits[r.name].qty += r.qty;
+
+      // If record has items array, stats each product individually
+      if (r.items && r.items.length > 0) {
+        // Proportion the shared costs (shipping, platform, other) by each item's cost ratio
+        var productCostOnly = 0;
+        for (var pi = 0; pi < r.items.length; pi++) {
+          productCostOnly += r.items[pi].costTotal;
+        }
+        var sharedCost = r.shipping + r.platformFee + r.otherFee;
+        for (var pj = 0; pj < r.items.length; pj++) {
+          var item = r.items[pj];
+          var ratio = productCostOnly > 0 ? item.costTotal / productCostOnly : (1 / r.items.length);
+          var itemRevenue = r.revenue * ratio;
+          var itemCost = item.costTotal + sharedCost * ratio;
+          var itemProfit = bossProfit * ratio;
+          addProductToStats(item.name, itemRevenue, itemCost, itemProfit, item.qty);
+        }
+      } else {
+        // Old format: single product
+        addProductToStats(r.name, r.revenue, r.totalCost, bossProfit, r.qty);
+      }
+
       var pcat = '产品销售';
       if (!categoryStats[pcat]) categoryStats[pcat] = { income: 0, expense: 0 };
       categoryStats[pcat].income += r.revenue;
@@ -1543,28 +1845,64 @@ function exportCSV() {
   var rows = [header];
   for (var i = records.length - 1; i >= 0; i--) {
     var r = records[i];
-    var row;
     if (r.type === 'product') {
-      row = [
-        r.date ? r.date.slice(0,10) : '',
-        '产品销售',
-        r.name || '',
-        r.qty || 0,
-        r.costUnit || 0,
-        r.costTotal || 0,
-        r.shipping || 0,
-        r.platformPct || 0,
-        r.platformFee || 0,
-        r.otherFee || 0,
-        r.revenue || 0,
-        r.totalCost || 0,
-        r.profit || 0,
-        r.profitMode === 'share' ? '分成' : '独立',
-        r.account || '',
-        r.note || ''
-      ];
+      // If has items array, export each item as a separate row
+      if (r.items && r.items.length > 1) {
+        for (var it = 0; it < r.items.length; it++) {
+          var item = r.items[it];
+          rows.push([
+            r.date ? r.date.slice(0,10) : '',
+            '产品销售',
+            item.name || '',
+            item.qty || 0,
+            item.costUnit || 0,
+            item.costTotal || 0,
+            r.shipping || 0,
+            r.platformPct || 0,
+            r.platformFee || 0,
+            r.otherFee || 0,
+            r.revenue || 0,
+            r.totalCost || 0,
+            r.profit || 0,
+            r.profitMode === 'share' ? '分成' : '独立',
+            r.account || '',
+            r.note || ''
+          ].map(function(cell) {
+            var s = String(cell);
+            if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
+              s = '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+          }));
+        }
+      } else {
+        rows.push([
+          r.date ? r.date.slice(0,10) : '',
+          '产品销售',
+          r.name || '',
+          r.qty || 0,
+          r.costUnit || 0,
+          r.costTotal || 0,
+          r.shipping || 0,
+          r.platformPct || 0,
+          r.platformFee || 0,
+          r.otherFee || 0,
+          r.revenue || 0,
+          r.totalCost || 0,
+          r.profit || 0,
+          r.profitMode === 'share' ? '分成' : '独立',
+          r.account || '',
+          r.note || ''
+        ].map(function(cell) {
+          var s = String(cell);
+          if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
+            s = '"' + s.replace(/"/g, '""') + '"';
+          }
+          return s;
+        }));
+      }
     } else {
-      row = [
+      rows.push([
         r.date ? r.date.slice(0,10) : '',
         r.type === 'income' ? '收入' : '支出',
         r.category || '',
@@ -1575,15 +1913,14 @@ function exportCSV() {
         '',
         r.account || '',
         r.note || ''
-      ];
+      ].map(function(cell) {
+        var s = String(cell);
+        if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
+          s = '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      }));
     }
-    rows.push(row.map(function(cell) {
-      var s = String(cell);
-      if (s.indexOf(',') >= 0 || s.indexOf('"') >= 0 || s.indexOf('\n') >= 0) {
-        s = '"' + s.replace(/"/g, '""') + '"';
-      }
-      return s;
-    }));
   }
   // Use BOM for iOS Excel/Numbers compatibility
   var csvContent = '\uFEFF' + rows.map(function(r) { return r.join(','); }).join('\n');
@@ -1608,22 +1945,6 @@ function copyJSON() {
   } else {
     fallbackCopy(data);
   }
-}
-
-function fallbackCopy(text) {
-  var ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.position = 'fixed';
-  ta.style.left = '-9999px';
-  document.body.appendChild(ta);
-  ta.select();
-  try {
-    document.execCommand('copy');
-    showToast('📋 已复制到剪贴板（共' + records.length + '条）');
-  } catch(e) {
-    showToast('❌ 复制失败，请手动复制');
-  }
-  document.body.removeChild(ta);
 }
 
 function handleImport(event) {
@@ -1662,7 +1983,6 @@ function confirmTextImport() {
   try {
     var data = JSON.parse(text);
     if (Array.isArray(data)) {
-      // 合并而非覆盖：检查是否已有相同ID的记录
       var existingIds = new Set(records.map(function(r) { return r.id; }));
       var newCount = 0;
       data.forEach(function(item) {
@@ -1704,6 +2024,9 @@ document.getElementById('p_region').addEventListener('change', function() { onRe
 document.getElementById('p_shipping').addEventListener('input', function() { onShippingManual(); });
 document.getElementById('p_platform_pct').addEventListener('input', function() { calcProfit(); });
 
+// Add product line button
+document.getElementById('btn-add-product-line').addEventListener('click', function() { addProductLine(); });
+
 // Calculator buttons
 document.getElementById('btn-save-calc').addEventListener('click', function() { saveCalcRecord(); });
 document.getElementById('btn-copy-full').addEventListener('click', function() { copyResult(true); });
@@ -1739,10 +2062,6 @@ document.querySelectorAll('.filter-chip').forEach(function(chip) {
 // Record list (event delegation for dynamic buttons)
 document.getElementById('record-list').addEventListener('click', function(e) {
   var target = e.target;
-  if (target.classList.contains('history-chip')) {
-    var idx = parseInt(target.getAttribute('data-idx'));
-    if (!isNaN(idx)) selectProduct(idx);
-  }
   // Copy/delete buttons in records
   if (target.tagName === 'BUTTON' || target.parentElement.tagName === 'BUTTON') {
     var btn = target.tagName === 'BUTTON' ? target : target.parentElement;
@@ -1755,6 +2074,24 @@ document.getElementById('record-list').addEventListener('click', function(e) {
       saveShareSettings();
       calcProfit();
     }
+  }
+});
+
+// Product lines container: event delegation for remove buttons
+document.getElementById('product-lines').addEventListener('click', function(e) {
+  var target = e.target;
+  if (target.getAttribute('data-action') === 'remove-product-line') {
+    var idx = target.getAttribute('data-line-idx');
+    if (idx) removeProductLine(idx);
+  }
+});
+
+// Product history chips (event delegation)
+document.getElementById('product-history').addEventListener('click', function(e) {
+  var target = e.target;
+  if (target.classList.contains('history-chip')) {
+    var idx = parseInt(target.getAttribute('data-idx'));
+    if (!isNaN(idx)) selectProduct(idx);
   }
 });
 </script>
