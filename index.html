@@ -648,8 +648,9 @@ input[type="number"] { text-align: right; }
     <div class="month-label" id="stat_month">本月汇总</div>
     <div class="month-amount" id="stat_month_profit">¥0</div>
     <div class="month-detail">
-      <span>收入：<span id="stat_month_income">¥0</span></span>
-      <span>支出：<span id="stat_month_expense">¥0</span></span>
+      <span>利润：<span id="stat_month_profit_text">¥0</span></span>
+      <span>支出：<span id="stat_month_expense_only">¥0</span></span>
+      <span style="font-weight:600;color:var(--primary)">净利润：<span id="stat_month_net_profit">¥0</span></span>
       <span>记录：<span id="stat_month_count">0</span>笔</span>
     </div>
   </div>
@@ -1752,7 +1753,10 @@ function renderStats() {
     }
   }
 
+  // 利润 = 产品利润 + 其他收入（不含支出）
+  // 支出单独显示，不从利润中扣除
   var monthProfit = 0;
+  var monthExpenseOnly = 0; // 纯支出（与上面的monthExpense成本不同）
   for (var pi = 0; pi < records.length; pi++) {
     var pr = records[pi];
     if (!inMonth(pr.date)) continue;
@@ -1761,9 +1765,11 @@ function renderStats() {
     } else if (pr.type === 'income') {
       monthProfit += pr.amount;
     } else if (pr.type === 'expense') {
-      monthProfit -= pr.amount;
+      monthExpenseOnly += pr.amount;
     }
   }
+  // 净利润 = 利润 - 支出
+  var monthNetProfit = monthProfit - monthExpenseOnly;
 
   var monthCount = 0;
   for (var j = 0; j < records.length; j++) {
@@ -1772,6 +1778,8 @@ function renderStats() {
 
   document.getElementById('stat_month').textContent = year + '年' + (month+1) + '月汇总';
   document.getElementById('stat_month_profit').textContent = formatMoney(monthProfit);
+  document.getElementById('stat_month_profit_text').textContent = formatMoney(monthProfit);
+  document.getElementById('stat_month_expense_only').textContent = formatMoney(monthExpenseOnly);
   document.getElementById('stat_month_income').textContent = formatMoney(monthIncome);
   document.getElementById('stat_month_expense').textContent = formatMoney(monthExpense);
   document.getElementById('stat_month_count').textContent = monthCount;
