@@ -1641,10 +1641,12 @@ function initStatsMonthPicker() {
   var now = new Date();
   statsYear = now.getFullYear();
   statsMonth = now.getMonth();
-  // Populate year dropdown
+  // Populate year dropdown - 至少包含当前年前后两年
   var yearSel = document.getElementById('stat-year-select');
   var years = new Set();
   years.add(statsYear);
+  years.add(statsYear - 1);
+  years.add(statsYear + 1);
   for (var i = 0; i < records.length; i++) {
     years.add(new Date(records[i].date).getFullYear());
   }
@@ -1654,16 +1656,24 @@ function initStatsMonthPicker() {
     var opt = document.createElement('option');
     opt.value = yearArr[y];
     opt.textContent = yearArr[y] + '年';
-    if (yearArr[y] === statsYear) opt.selected = true;
     yearSel.appendChild(opt);
   }
-  document.getElementById('stat-month-select').value = statsMonth;
+  yearSel.value = statsYear;
+  // 设置月份为当前月
+  var monthSel = document.getElementById('stat-month-select');
+  monthSel.value = statsMonth;
+  // 手动触发选项选中
+  for (var m = 0; m < monthSel.options.length; m++) {
+    monthSel.options[m].selected = (parseInt(monthSel.options[m].value) === statsMonth);
+  }
   refreshStats();
 }
 
 function refreshStats() {
-  statsYear = parseInt(document.getElementById('stat-year-select').value);
-  statsMonth = parseInt(document.getElementById('stat-month-select').value);
+  var yearVal = document.getElementById('stat-year-select').value;
+  var monthVal = document.getElementById('stat-month-select').value;
+  statsYear = yearVal ? parseInt(yearVal) : new Date().getFullYear();
+  statsMonth = monthVal !== '' ? parseInt(monthVal) : new Date().getMonth();
   renderStats();
 }
 
