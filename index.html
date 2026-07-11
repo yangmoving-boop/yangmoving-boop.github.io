@@ -1695,7 +1695,9 @@ function renderStats() {
   var categoryStats = {};
 
   function inMonth(dateStr) {
+    if (!dateStr) return false;
     var d = new Date(dateStr);
+    if (isNaN(d.getTime())) return false;
     return d.getMonth() === month && d.getFullYear() === year;
   }
 
@@ -1786,10 +1788,12 @@ function renderStats() {
     if (inMonth(records[j].date)) monthCount++;
   }
 
+  console.log('renderStats: year=' + year + ' month=' + month + ' records=' + records.length + ' profit=' + monthProfit + ' expense=' + monthExpenseOnly + ' net=' + monthNetProfit + ' count=' + monthCount);
   document.getElementById('stat_month').textContent = year + '年' + (month+1) + '月汇总';
   document.getElementById('stat_month_profit').textContent = formatMoney(monthProfit);
   document.getElementById('stat_month_profit_text').textContent = formatMoney(monthProfit);
   document.getElementById('stat_month_expense_only').textContent = formatMoney(monthExpenseOnly);
+  document.getElementById('stat_month_net_profit').textContent = formatMoney(monthNetProfit);
   document.getElementById('stat_month_income').textContent = formatMoney(monthIncome);
   document.getElementById('stat_month_expense').textContent = formatMoney(monthExpense);
   document.getElementById('stat_month_count').textContent = monthCount;
