@@ -794,7 +794,7 @@ function switchTab(name, el) {
   el.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'records') renderRecords();
-  if (name === 'stats') renderStats();
+  if (name === 'stats') initStatsMonthPicker();
 }
 
 // ===== Product Line Management =====
@@ -2027,7 +2027,7 @@ init();
 // Tab switch
 document.getElementById('tab-btn-calculator').addEventListener('click', function() { switchTab('calculator', this); });
 document.getElementById('tab-btn-records').addEventListener('click', function() { switchTab('records', this); });
-document.getElementById('tab-btn-stats').addEventListener('click', function() { switchTab('stats', this); initStatsMonthPicker(); });
+document.getElementById('tab-btn-stats').addEventListener('click', function() { switchTab('stats', this); });
 
 // Profit mode
 document.getElementById('mode-solo').addEventListener('click', function() { selectProfitMode('solo'); });
