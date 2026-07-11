@@ -1788,7 +1788,6 @@ function renderStats() {
     if (inMonth(records[j].date)) monthCount++;
   }
 
-  console.log('renderStats: year=' + year + ' month=' + month + ' records=' + records.length + ' profit=' + monthProfit + ' expense=' + monthExpenseOnly + ' net=' + monthNetProfit + ' count=' + monthCount);
   document.getElementById('stat_month').textContent = year + '年' + (month+1) + '月汇总';
   document.getElementById('stat_month_profit').textContent = formatMoney(monthProfit);
   document.getElementById('stat_month_profit_text').textContent = formatMoney(monthProfit);
